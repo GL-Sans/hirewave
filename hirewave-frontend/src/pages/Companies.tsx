@@ -1,33 +1,40 @@
+import { useEffect, useState } from "react";
+import axiosClient from "../api/axiosClient";
+
+type Company = {
+  id: number;
+  name: string;
+  location: string;
+};
+
 export default function CompaniesPage() {
-  const companies = [
-    { id: 1, name: "Ristorante MareChiaro", type: "Ristorazione", location: "Pescara" },
-    { id: 2, name: "Lido Nettuno", type: "Stabilimento Balneare", location: "Francavilla" },
-    { id: 3, name: "TechWave Studio", type: "Agenzia Digital", location: "Remoto" },
-  ];
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    axiosClient
+      .get("/api/companies")
+      .then(res => setCompanies(res.data))
+      .catch(() => setError("Errore nel caricamento delle aziende"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <p>Caricamento aziende...</p>;
+  if (error) return <p className="text-red-600">{error}</p>;
+  if (!companies.length) return <p className="text-slate-500">Nessuna azienda trovata</p>;
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">Aziende</h1>
-        <p className="text-sm text-slate-500">
-          Alcune delle realtà con cui HireWave può connettere i talenti.
-        </p>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-3">
-        {companies.map((c) => (
-          <div
-            key={c.id}
-            className="bg-white rounded-2xl shadow-sm p-4 flex flex-col gap-1"
-          >
-            <span className="font-semibold text-sm text-slate-900">
-              {c.name}
-            </span>
-            <span className="text-xs text-slate-600">{c.type}</span>
-            <span className="text-xs text-slate-400">{c.location}</span>
-          </div>
-        ))}
-      </div>
+      {companies.map(company => (
+        <div
+          key={company.id}
+          className="text-gray-600 border rounded-lg p-4 bg-white shadow-sm"
+        >
+          <h3 className="font-semibold">{company.name}</h3>
+          <p className="text-sm">{company.location}</p>
+        </div>
+      ))}
     </div>
   );
 }

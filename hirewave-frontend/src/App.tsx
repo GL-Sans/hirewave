@@ -12,6 +12,7 @@ import CompaniesPage from "./pages/Companies";
 import ProfilePage from "./pages/Profile";
 
 import MainLayout from "./layout/MainLayout";
+import GuestLayout from "./layout/GuestLayout";
 
 function App() {
   return (
@@ -19,12 +20,13 @@ function App() {
       <BrowserRouter>
         <Routes>
           {/* ROTTE PUBBLICHE (solo se NON loggato) */}
-          <Route element={<PublicRoute />}>
-            <Route path="/" element={<LoginPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+          <Route element={<GuestLayout />}>
+            <Route element={<PublicRoute />}>
+              <Route path="/" element={<LoginPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+            </Route>
           </Route>
-
           {/* ROTTE PROTETTE (solo se loggato) */}
           <Route element={<ProtectedRoute />}>
             <Route element={<MainLayout />}>

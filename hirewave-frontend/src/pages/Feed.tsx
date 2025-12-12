@@ -22,6 +22,16 @@ const mockJobs = [
     contractType: "Tempo determinato",
     budget: "€10-12/ora",
   },
+  {
+    location: "Montesilvano",
+    timeAgo: "6 giorni fa",
+    sponsored: false,
+    imageUrl: "https://images.pexels.com/photos/1181263/pexels-photo-1181263.jpeg?auto=compress&cs=tinysrgb&w=800",
+    title: "Barman per serate in locale sul mare",
+    tags: ["Nightlife", "Restaurant"],
+    contractType: "Part-time / Determinato",
+    budget: "€8-10/ora",
+  },
 ];
 
 export default function FeedPage() {

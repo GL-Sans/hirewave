@@ -1,12 +1,15 @@
 import { type FormEvent, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 export default function LoginPage() {
   const { login, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const location = useLocation();
+  const errorState = location.state?.error;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -25,7 +28,7 @@ export default function LoginPage() {
 
         {error && (
           <div className="mb-4 text-sm text-red-600 border border-red-200 rounded-lg px-3 py-2">
-            {error}
+             {errorState} {error}
           </div>
         )}
 
