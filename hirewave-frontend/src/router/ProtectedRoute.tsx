@@ -14,7 +14,7 @@ export default function ProtectedRoute() {
   if (!user) {
     return (
       <Navigate
-        to="/login"
+        to="/"
         replace
         state={{
           error: "Devi effettuare l’accesso per visualizzare questa pagina",

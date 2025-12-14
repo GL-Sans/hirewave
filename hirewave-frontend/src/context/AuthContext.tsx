@@ -30,17 +30,16 @@ export const AuthProvider = ({ children }: any) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Per evitare che React.StrictMode richiami due volte l'effetto
+  // Evita doppia esecuzione in StrictMode
   const initializedRef = useRef(false);
 
-  // Carica sessione utente da Laravel
+  // Recupera utente autenticato
   const fetchUser = async () => {
     try {
-      const res = await axiosClient.get("/api/me");   // << QUI
+      const res = await axiosClient.get("/api/me");
       setUser(res.data.user);
     } catch (error: any) {
-      const status = error?.response?.status;
-      if (status === 401) {
+      if (error?.response?.status === 401) {
         setUser(null);
         return;
       }
@@ -48,15 +47,14 @@ export const AuthProvider = ({ children }: any) => {
     }
   };
 
-
-  // SOLO all'avvio
+  // Eseguito solo all'avvio
   useEffect(() => {
-    if (initializedRef.current) return; // blocca il doppio run in StrictMode
+    if (initializedRef.current) return;
     initializedRef.current = true;
 
     (async () => {
-      await fetchUser();   // prova a caricare l'utente
-      setLoading(false);   // termina fase di loading
+      await fetchUser();
+      setLoading(false);
     })();
   }, []);
 

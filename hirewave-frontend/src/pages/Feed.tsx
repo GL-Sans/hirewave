@@ -1,4 +1,4 @@
-// src/pages/FeedPage.tsx
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import JobCard from "../components/JobCard";
 
 const mockJobs = [
@@ -46,6 +46,18 @@ export default function FeedPage() {
           Filtri avanzati
         </button>
       </div>
+
+      {/* Search */}
+        <div className="flex-1">
+          <div className="border-1 border-gray-600 text-black flex items-center gap-2 bg-slate-100 rounded-full px-3 py-1.5">
+            <MagnifyingGlassIcon className="w-4 h-4 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Cerca opportunità…"
+              className="bg-transparent outline-none text-sm flex-1"
+            />
+          </div>
+        </div>
 
       {/* Lista annunci */}
       <div className="grid md:grid-cols-2 gap-4">
