@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import axiosClient from "../api/axiosClient";
+import { Link } from "react-router-dom";
 
 type Talent = {
   id: number;
   name: string;
   role: string;
-  location: string;
 };
 
 export default function TalentsPage() {
@@ -24,13 +24,15 @@ export default function TalentsPage() {
   return (
     <div className="space-y-4">
       {talents.map(talent => (
+      <Link to={`/profile/${talent.id}`}>
         <div
           key={talent.id}
-          className="text-gray-600 border rounded-lg p-4 bg-white shadow-sm"
+          className="mb-4 text-gray-600 border rounded-lg p-4 bg-white shadow-sm"
         >
           <h3 className="font-semibold">{talent.name}</h3>
           <p className="text-sm text-slate-600">{talent.role}</p>
         </div>
+      </Link>
       ))}
     </div>
   );

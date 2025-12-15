@@ -1,71 +1,97 @@
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import axiosClient from "../api/axiosClient";
+import FeedCard from "../components/FeedCard";
+import type { FeedPost } from "../types/Feed";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
 
 export default function ProfilePage() {
-  const { user, logout, loading } = useAuth();
-  const navigate = useNavigate();
+  const { id } = useParams();
+  const [user, setUser] = useState<any>(null);
+  const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user: loggedUser, logout } = useAuth();
+  const isMyProfile = !id || Number(id) === loggedUser?.id;
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/login", { replace: true });
-  };
 
-  if (loading && !user) {
-    return null;
-  }
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        if (id) {
+          const res = await axiosClient.get(`/api/profiles/${id}`);
+          setUser(res.data.user);
+          setPosts(res.data.posts);
+        } else {
+          const res = await axiosClient.get("/api/me");
+          setUser(res.data.user);
 
-  if (!user) {
-    return (
-      <div className="bg-white rounded-2xl shadow-sm p-6">
-        <p className="text-sm text-slate-600">
-          Nessun utente autenticato. Effettua il login.
-        </p>
-      </div>
-    );
-  }
+          const feed = await axiosClient.get("/api/feed");
+          setPosts(
+            feed.data.filter((p: any) => p.user.id === res.data.user.id)
+          );
+        }
+      } catch (err) {
+        console.error("Errore caricamento profilo:", err);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [id]);
+
+  if (loading) return <p className="text-black p-4">Caricamento profilo…</p>;
+  if (!user) return <p className="text-black p-4">Profilo non trovato</p>;
 
   return (
-    <div className="max-w-xl mx-auto bg-white rounded-2xl shadow-sm p-6 flex flex-col gap-6">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="text-gray-700 bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Profilo</h1>
-        <p className="text-sm text-slate-500">
-          Le informazioni del tuo account HireWave.
-        </p>
+        <h1 className="text-xl font-semibold">{user.name}</h1>
+        <p className="text-sm text-slate-500 capitalize">{user.role}</p>
       </div>
 
-      <div className="space-y-4 text-sm">
-        <div>
-          <span className="block text-xs font-semibold text-slate-500">
-            Nome
-          </span>
-          <span className="block text-slate-900">{user.name}</span>
-        </div>
-
-        <div>
-          <span className="block text-xs font-semibold text-slate-500">
-            Email
-          </span>
-          <span className="block text-slate-900">{user.email}</span>
-        </div>
-
-        <div>
-          <span className="block text-xs font-semibold text-slate-500">
-            Ruolo
-          </span>
-          <span className="inline-flex px-2 py-1 rounded-full bg-slate-100 text-xs text-slate-700 capitalize">
-            {user.role}
-          </span>
-        </div>
-      </div>
-
-      <div className="pt-4 border-t border-slate-100">
+      {isMyProfile && (
         <button
-          onClick={handleLogout}
-          className="w-full border border-red-200 text-red-600 text-sm font-semibold py-2.5 rounded-lg hover:bg-red-50"
+          onClick={logout}
+          className="text-sm text-red-600 font-semibold border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50"
         >
-          Esci dall’account
+          Logout
         </button>
-      </div>
+      )}
+    </div>
+
+      {/* Post */}
+      {posts.length === 0 ? (
+        <p className="text-sm text-slate-500">
+          Nessun post pubblicato
+        </p>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-4">
+          {posts.map((post) => (
+            <FeedCard
+              key={post.id}
+              postId={post.id}
+              type={post.type}
+              title={post.title}
+              location={post.location ?? "—"}
+              timeAgo="—"
+              sponsored={post.sponsored}
+              imageUrl="https://images.pexels.com/photos/1181671/pexels-photo-1181671.jpeg"
+              tags={post.type === "job" ? ["Annuncio"] : ["Richiesta"]}
+              contractType={post.contract_type ?? "—"}
+              budget={post.budget ?? "—"}
+              author={{
+                id: post.user.id,
+                name: post.user.name,
+                role: post.user.role,
+              }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

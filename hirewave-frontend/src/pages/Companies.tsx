@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import axiosClient from "../api/axiosClient";
 
 type Company = {
@@ -27,6 +28,7 @@ export default function CompaniesPage() {
   return (
     <div className="space-y-4">
       {companies.map(company => (
+      <Link to={`/profile/${company.id}`}>
         <div
           key={company.id}
           className="text-gray-600 border rounded-lg p-4 bg-white shadow-sm"
@@ -34,6 +36,7 @@ export default function CompaniesPage() {
           <h3 className="font-semibold">{company.name}</h3>
           <p className="text-sm">{company.location}</p>
         </div>
+      </Link>
       ))}
     </div>
   );

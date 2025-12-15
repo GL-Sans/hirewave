@@ -1,40 +1,25 @@
+import { useEffect, useState } from "react";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import JobCard from "../components/JobCard";
-
-const mockJobs = [
-  {
-    location: "Pescara",
-    timeAgo: "5 ore fa",
-    sponsored: true,
-    imageUrl: "https://images.pexels.com/photos/1181671/pexels-photo-1181671.jpeg?auto=compress&cs=tinysrgb&w=800",
-    title: "Senior React Developer per piattaforma HR-Tech ad alta scalabilità",
-    tags: ["React", "TypeScript", "NodeJS"],
-    contractType: "Freelance · Progetto",
-    budget: "€2.500 - 3.500",
-  },
-  {
-    location: "Chieti",
-    timeAgo: "1 giorno fa",
-    sponsored: false,
-    imageUrl: "https://images.pexels.com/photos/1181263/pexels-photo-1181263.jpeg?auto=compress&cs=tinysrgb&w=800",
-    title: "Cameriere extra weekend per stagione estiva",
-    tags: ["Extra", "Weekend"],
-    contractType: "Tempo determinato",
-    budget: "€10-12/ora",
-  },
-  {
-    location: "Montesilvano",
-    timeAgo: "6 giorni fa",
-    sponsored: false,
-    imageUrl: "https://images.pexels.com/photos/1181263/pexels-photo-1181263.jpeg?auto=compress&cs=tinysrgb&w=800",
-    title: "Barman per serate in locale sul mare",
-    tags: ["Nightlife", "Restaurant"],
-    contractType: "Part-time / Determinato",
-    budget: "€8-10/ora",
-  },
-];
+import axiosClient from "../api/axiosClient";
+// import JobCard from "../components/JobCard";
+import type { FeedPost } from "../types/Feed";
+import FeedCard from "../components/FeedCard";
 
 export default function FeedPage() {
+  const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    axiosClient
+      .get("/api/feed")
+      .then((res) => setPosts(res.data))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <p className="text-sm text-slate-500">Caricamento feed…</p>;
+  }
+
   return (
     <div className="space-y-4">
       {/* Filtri rapidi */}
@@ -48,23 +33,55 @@ export default function FeedPage() {
       </div>
 
       {/* Search */}
-        <div className="flex-1">
-          <div className="border-1 border-gray-600 text-black flex items-center gap-2 bg-slate-100 rounded-full px-3 py-1.5">
-            <MagnifyingGlassIcon className="w-4 h-4 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Cerca opportunità…"
-              className="bg-transparent outline-none text-sm flex-1"
-            />
-          </div>
+      <div className="flex-1">
+        <div className="border border-gray-300 flex items-center gap-2 bg-slate-100 rounded-full px-3 py-1.5">
+          <MagnifyingGlassIcon className="w-4 h-4 text-slate-500" />
+          <input
+            type="text"
+            placeholder="Cerca opportunità…"
+            className="bg-transparent outline-none text-sm flex-1"
+          />
         </div>
+      </div>
 
       {/* Lista annunci */}
       <div className="grid md:grid-cols-2 gap-4">
-        {mockJobs.map((job) => (
-          <JobCard key={job.title} {...job} />
+        {posts.map((post) => (
+          <FeedCard
+            key={post.id}
+            postId={post.id}
+            type={post.type}
+            title={post.title}
+            location={post.location ?? "—"}
+            timeAgo={formatTimeAgo(post.created_at)}
+            sponsored={post.sponsored}
+            imageUrl={getImageByType(post.type)}
+            tags={post.type === "job" ? ["Annuncio"] : ["Richiesta"]}
+            contractType={post.contract_type ?? "—"}
+            budget={post.budget ?? "—"}
+            author={{
+              id: post.user.id,
+              name: post.user.name,
+              role: post.user.role,
+            }}
+          />
         ))}
       </div>
     </div>
   );
+}
+
+/* Helpers UI (semplici e sostituibili) */
+function getImageByType(type: "job" | "service") {
+  return type === "job"
+    ? "https://images.pexels.com/photos/1181671/pexels-photo-1181671.jpeg?auto=compress&cs=tinysrgb&w=800"
+    : "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=800";
+}
+
+function formatTimeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  if (hours < 24) return `${hours} ore fa`;
+  const days = Math.floor(hours / 24);
+  return `${days} giorni fa`;
 }

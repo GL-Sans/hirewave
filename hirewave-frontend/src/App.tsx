@@ -13,6 +13,7 @@ import ProfilePage from "./pages/Profile";
 
 import MainLayout from "./layout/MainLayout";
 import GuestLayout from "./layout/GuestLayout";
+import CreatePostPage from "./pages/CreatePost";
 
 function App() {
   return (
@@ -34,6 +35,8 @@ function App() {
               <Route path="/talents" element={<TalentsPage />} />
               <Route path="/companies" element={<CompaniesPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/profile/:id" element={<ProfilePage />} />
+              <Route path="/create" element={<CreatePostPage />} />
             </Route>
           </Route>
         </Routes>
