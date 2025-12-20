@@ -34,7 +34,7 @@ export default function FeedPage() {
 
       {/* Search */}
       <div className="flex-1">
-        <div className="border border-gray-300 flex items-center gap-2 bg-slate-100 rounded-full px-3 py-1.5">
+        <div className="text-gray-600 border border-gray-300 flex items-center gap-2 bg-slate-100 rounded-full px-3 py-1.5">
           <MagnifyingGlassIcon className="w-4 h-4 text-slate-500" />
           <input
             type="text"

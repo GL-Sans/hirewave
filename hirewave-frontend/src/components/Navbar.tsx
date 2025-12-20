@@ -6,6 +6,7 @@ import {
   UserGroupIcon,
   BuildingOffice2Icon,
   UserIcon,
+  PlusCircleIcon,
 } from "@heroicons/react/24/outline";
 
 // type Props = {
@@ -33,16 +34,19 @@ export default function Navbar() {
           <Bars3Icon className="w-6 h-6 text-slate-800" />
         </button> */}
 
-        {/* LOGO (solo desktop) */}
+        {/* LOGO  */}
+        <Link
+              to="/feed">
           <div className="hidden md:flex items-center gap-2">
-            <div className="w-9 h-9 rounded-2xl bg-blue-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">HW</span>
-            </div>
-            <span className="font-semibold text-slate-800">HireWave</span>
+            <div
+              className="w-10 h-10 rounded-xl bg-center bg-no-repeat bg-cover"
+              style={{ backgroundImage: "url('img/favicon.png')" }}
+            />
           </div>
+        </Link>
 
           {/* NAV */}
-          <nav className="flex flex-1 justify-around md:justify-start md:gap-2">
+          <nav className="flex flex-1 items-center justify-around md:justify-center md:gap-2">
             
             {/* FEED */}
             <Link
@@ -74,14 +78,32 @@ export default function Navbar() {
               <span>Talenti</span>
             </Link>
 
-            {/* CREA POST */}
+            {/* CREA ANNUNCIO */}
             <Link
               to="/create"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold"
+              className="
+                flex items-center justify-center
+                md:flex-row
+                border-x
+                border-gray-400
+                hover:bg-gray-400 hover:text-white
+                text-gray-500
+                px-3 md:px-4
+                h-10
+                rounded-lg
+                text-xs md:text-sm
+                font-semibold
+              "
             >
-              Crea post
-            </Link>
+              {/* Icona (mobile) */}
+              <PlusCircleIcon className="w-9 h-9 md:hidden" />
 
+              {/* Testo (desktop) */}
+              <span className="hidden md:inline">
+                Crea post
+              </span>
+            </Link>
+            
             {/* AZIENDE */}
             <Link
               to="/companies"
