@@ -1,5 +1,5 @@
 // import { useState, useEffect } from "react";
-import Navbar from "../components/Navbar";
+// import Navbar from "../components/Navbar";
 // import DrawerMenu from "../components/DrawerMenu";
 import { Outlet } from "react-router-dom";
 import Footer from "../components/Footer";
@@ -25,7 +25,7 @@ export default function MainLayout() {
 
   return (
     <div className="h-dvh bg-slate-50 overflow-hidden">
-      <Navbar /* onMenuClick={toggleMenu} */ />
+      {/*<Navbar  onMenuClick={toggleMenu}  />*/}
 
       {/* <DrawerMenu
         open={menuOpen}
