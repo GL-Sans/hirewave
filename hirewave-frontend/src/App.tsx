@@ -14,6 +14,7 @@ import ProfilePage from "./pages/Profile";
 import MainLayout from "./layout/MainLayout";
 import GuestLayout from "./layout/GuestLayout";
 import CreatePostPage from "./pages/CreatePost";
+import ChatPage from "./pages/Chat";
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/profile/:id" element={<ProfilePage />} />
               <Route path="/create" element={<CreatePostPage />} />
+              <Route path="/chat" element={<ChatPage />} />
             </Route>
           </Route>
         </Routes>

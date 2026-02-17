@@ -100,9 +100,11 @@ export default function FeedCard(props: FeedCardProps) {
               <button className="w-full bg-green-600 text-white text-sm font-semibold py-1.5 rounded-lg">
                 Offri il tuo servizio
               </button>
-              <button className="w-full border border-green-600 text-green-600 text-sm font-semibold py-1.5 rounded-lg">
-                Contatta il professionista
-              </button>
+              <Link to="/chat">
+                <button className="w-full border border-green-600 text-green-600 text-sm font-semibold py-1.5 rounded-lg">
+                  Contatta il professionista
+                </button>
+              </Link>
             </>
           )}
 
