@@ -81,6 +81,8 @@ function getImageByType(type: "job" | "service") {
 function formatTimeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor(diff / (1000 * 60));
+  if (hours < 1) return `${minutes} minuti fa`;
   if (hours < 24) return `${hours} ore fa`;
   const days = Math.floor(hours / 24);
   return `${days} giorni fa`;
