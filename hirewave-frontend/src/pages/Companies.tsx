@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axiosClient from "../api/axiosClient";
+import SearchBar from "../components/SearchBar";
 
 type Company = {
     id: number;
@@ -29,6 +30,8 @@ export default function CompaniesPage() {
 
     return (
         <div className="space-y-4">
+            {/* Search */}
+            <SearchBar placeholder="Cerca aziende…" />
             {companies.map((company) => (
                 <Link to={`/profile/${company.id}`}>
                     <div

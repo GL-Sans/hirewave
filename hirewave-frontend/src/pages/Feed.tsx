@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import SearchBar from "../components/SearchBar";
 import axiosClient from "../api/axiosClient";
 // import JobCard from "../components/JobCard";
 import type { FeedPost } from "../types/Feed";
@@ -33,16 +33,7 @@ export default function FeedPage() {
             </div>
 
             {/* Search */}
-            <div className="flex-1">
-                <div className="text-gray-600 border border-gray-300 flex items-center gap-2 bg-slate-100 rounded-full px-3 py-1.5">
-                    <MagnifyingGlassIcon className="w-4 h-4 text-slate-500" />
-                    <input
-                        type="text"
-                        placeholder="Cerca opportunità…"
-                        className="bg-transparent outline-none text-sm flex-1"
-                    />
-                </div>
-            </div>
+            <SearchBar placeholder="Cerca opportunità…" />
 
             {/* Lista annunci */}
             <div className="grid md:grid-cols-2 gap-4">

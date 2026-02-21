@@ -40,11 +40,11 @@ export default function FeedCard(props: FeedCardProps) {
                 <span>
                     {location} · {timeAgo}
                 </span>
-                {sponsored && (
+                {sponsored ? (
                     <span className="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-amber-100 text-amber-700">
                         Sponsorizzato
                     </span>
-                )}
+                ) : <span></span>}
             </div>
 
             {/* Image */}

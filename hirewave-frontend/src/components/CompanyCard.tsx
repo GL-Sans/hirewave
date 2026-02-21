@@ -38,7 +38,7 @@ export default function CompanyCard({ company }: { company: Company }) {
                 {company.tags.map((tag, i) => (
                     <span
                         key={i}
-                        className="px-2 py-1 text-gray-600  border-1 border-gray-600 rounded-full text-xs cursor-pointer"
+                        className="px-2 py-1 text-gray-600 border border-gray-600 rounded-full text-xs cursor-pointer"
                     >
                         {tag}
                     </span>
