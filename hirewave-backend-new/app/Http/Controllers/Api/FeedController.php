@@ -9,7 +9,7 @@ class FeedController extends Controller
 {
     public function index()
     {
-        $posts = Post::with('user:id,name,role')
+        $posts = Post::with('user:id,first_name,last_name,role')
             ->latest()
             ->get();
 

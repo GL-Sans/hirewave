@@ -8,14 +8,16 @@ class UserController extends Controller
     public function talents()
     {
         return User::whereIn('role', ['worker', 'pro'])
-            ->select('id', 'name', 'role')
+            ->where('id', '!=', auth()->id())
+            ->select('id', 'first_name', 'last_name', 'role')
             ->get();
     }
 
     public function companies()
     {
         return User::where('role', 'company')
-            ->select('id', 'name')
+            ->where('id', '!=', auth()->id())
+            ->select('id', 'first_name', 'last_name')
             ->get();
     }
 }

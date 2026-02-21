@@ -10,7 +10,8 @@ import { ChatMessage } from "../components/ChatMessage";
 const MOCK_CONTACTS = [
     {
         id: 1,
-        name: "Mario Rossi",
+        first_name: "Mario",
+        last_name: "Rossi",
         lastMessage: "Ciao, ho visto il tuo annuncio...",
         time: "10:30",
         avatar: "MR",
@@ -18,7 +19,8 @@ const MOCK_CONTACTS = [
     },
     {
         id: 2,
-        name: "Luigi Bianchi",
+        first_name: "Luigi",
+        last_name: "Bianchi",
         lastMessage: "Va bene per domani alle 15?",
         time: "Ieri",
         avatar: "LB",
@@ -26,7 +28,8 @@ const MOCK_CONTACTS = [
     },
     {
         id: 3,
-        name: "Anna Verga",
+        first_name: "Anna",
+        last_name: "Verga",
         lastMessage: "Grazie mille!",
         time: "Lun",
         avatar: "AV",
@@ -93,9 +96,7 @@ export default function ChatPage() {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-start mb-1">
-                                    <h3 className="font-semibold text-slate-900 truncate">
-                                        {contact.name}
-                                    </h3>
+                                    {contact.first_name} {contact.last_name}
                                     <span className="text-[10px] text-slate-400 whitespace-nowrap">
                                         {contact.time}
                                     </span>
@@ -119,7 +120,8 @@ export default function ChatPage() {
                         </div>
                         <div>
                             <h2 className="font-semibold text-slate-900">
-                                {selectedContact.name}
+                                {selectedContact.first_name}{" "}
+                                {selectedContact.last_name}
                             </h2>
                             <p className="text-xs text-green-500">
                                 {selectedContact.online ? "Online" : "Offline"}

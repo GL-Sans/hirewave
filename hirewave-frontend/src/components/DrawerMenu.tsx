@@ -53,15 +53,6 @@ export default function DrawerMenu({ open, onClose }: Props) {
           >
             Aziende
           </Link>
-          <Link
-            to="/profile"
-            className={`block px-3 py-2 rounded-lg text-sm text-slate-700 ${isActive(
-              "/profile"
-            )}`}
-            onClick={onClose}
-          >
-            Profilo
-          </Link>
         </nav>
       </div>
     </div>

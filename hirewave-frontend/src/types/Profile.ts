@@ -1,12 +1,13 @@
 import type { FeedPost } from "./Feed";
 
 export type PublicProfile = {
-  id: number;
-  name: string;
-  role: "worker" | "pro" | "company";
+    id: number;
+    first_name: string;
+    last_name: string;
+    role: "worker" | "pro" | "company";
 };
 
 export type PublicProfileResponse = {
-  user: PublicProfile;
-  posts: FeedPost[];
+    user: PublicProfile;
+    posts: FeedPost[];
 };
