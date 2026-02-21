@@ -2,8 +2,8 @@ import { useState } from "react";
 import {
     MagnifyingGlassIcon,
     PaperAirplaneIcon,
-    FaceSmileIcon,
     PaperClipIcon,
+    ChevronLeftIcon,
 } from "@heroicons/react/24/outline";
 import { ChatMessage } from "../components/ChatMessage";
 
@@ -61,11 +61,21 @@ const MOCK_MESSAGES = [
 export default function ChatPage() {
     const [selectedContact, setSelectedContact] = useState(MOCK_CONTACTS[0]);
     const [message, setMessage] = useState("");
+    const [showChatOnMobile, setShowChatOnMobile] = useState(false);
+
+    const handleSelectContact = (contact: any) => {
+        setSelectedContact(contact);
+        setShowChatOnMobile(true);
+    };
 
     return (
         <div className="flex h-[calc(100vh-120px)] bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200">
             {/* Sidebar Contatti */}
-            <div className="w-full md:w-80 border-r border-slate-100 flex flex-col p-0">
+            <div
+                className={`w-full md:w-80 border-r border-slate-100 flex flex-col p-0 ${
+                    showChatOnMobile ? "hidden md:flex" : "flex"
+                }`}
+            >
                 <div className="relative">
                     <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
@@ -79,7 +89,7 @@ export default function ChatPage() {
                     {MOCK_CONTACTS.map((contact) => (
                         <div
                             key={contact.id}
-                            onClick={() => setSelectedContact(contact)}
+                            onClick={() => handleSelectContact(contact)}
                             className={`p-4 flex items-center gap-3 cursor-pointer transition-colors ${
                                 selectedContact.id === contact.id
                                     ? "bg-blue-50"
@@ -111,9 +121,19 @@ export default function ChatPage() {
             </div>
 
             {/* Area Messaggi */}
-            <div className="hidden md:flex flex-1 flex-col">
+            <div
+                className={`${
+                    showChatOnMobile ? "flex" : "hidden"
+                } md:flex flex-1 flex-col`}
+            >
                 {/* Header Chat */}
-                <div className="p-4 border-b border-slate-50 flex items-center justify-between">
+                <div className="p-4 border-b border-slate-50 flex items-center gap-3">
+                    <button
+                        onClick={() => setShowChatOnMobile(false)}
+                        className="md:hidden p-2 -ml-2 text-slate-400 hover:text-slate-600"
+                    >
+                        <ChevronLeftIcon className="w-6 h-6" />
+                    </button>
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
                             {selectedContact.avatar}
