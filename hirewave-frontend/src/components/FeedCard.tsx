@@ -7,7 +7,7 @@ type FeedCardProps = {
     location: string;
     timeAgo: string;
     sponsored?: boolean;
-    imageUrl: string;
+    imageUrl?: string;
     tags: string[];
     contractType: string;
     budget: string;
@@ -44,17 +44,21 @@ export default function FeedCard(props: FeedCardProps) {
                     <span className="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-amber-100 text-amber-700">
                         Sponsorizzato
                     </span>
-                ) : <span></span>}
+                ) : (
+                    <span></span>
+                )}
             </div>
 
             {/* Image */}
-            <div className="mt-3">
-                <img
-                    src={imageUrl}
-                    alt={title}
-                    className="w-full h-40 object-cover"
-                />
-            </div>
+            {imageUrl && (
+                <div className="mt-3">
+                    <img
+                        src={imageUrl}
+                        alt={title}
+                        className="w-full h-40 object-cover"
+                    />
+                </div>
+            )}
 
             {/* Body */}
             <div className="p-4 flex flex-col gap-2 flex-1">

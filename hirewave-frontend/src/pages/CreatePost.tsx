@@ -59,7 +59,23 @@ export default function CreatePostPage() {
         setError(null);
 
         try {
-            await axiosClient.post("/api/posts", form);
+            const formData = new FormData();
+            formData.append("title", form.title);
+            if (form.description)
+                formData.append("description", form.description);
+            if (form.location) formData.append("location", form.location);
+            if (form.contract_type)
+                formData.append("contract_type", form.contract_type);
+            if (form.budget) formData.append("budget", form.budget);
+            if (selectedFile) {
+                formData.append("image", selectedFile);
+            }
+
+            await axiosClient.post("/api/posts", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
             navigate("/feed");
         } catch (err: any) {
             setError("Errore nella creazione del post");

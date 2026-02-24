@@ -14,6 +14,7 @@ export type FeedPost = {
     sponsored: boolean;
     contract_type?: string | null;
     budget?: string | null;
+    image_url?: string | null;
     created_at: string;
     user: FeedUser;
 };

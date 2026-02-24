@@ -46,7 +46,7 @@ export default function FeedPage() {
                         location={post.location ?? "—"}
                         timeAgo={formatTimeAgo(post.created_at)}
                         sponsored={post.sponsored}
-                        imageUrl={getImageByType(post.type)}
+                        imageUrl={post.image_url ? post.image_url : undefined}
                         tags={
                             post.type === "job" ? ["Annuncio"] : ["Richiesta"]
                         }
@@ -66,12 +66,6 @@ export default function FeedPage() {
 }
 
 /* Helpers UI (semplici e sostituibili) */
-function getImageByType(type: "job" | "service") {
-    return type === "job"
-        ? "https://images.pexels.com/photos/1181671/pexels-photo-1181671.jpeg?auto=compress&cs=tinysrgb&w=800"
-        : "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=800";
-}
-
 function formatTimeAgo(iso: string) {
     const diff = Date.now() - new Date(iso).getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
