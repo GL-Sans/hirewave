@@ -46,12 +46,12 @@ export default function TalentCard(props: TalentCardProps) {
                 >
                     <BookmarkIcon className="w-5 h-5" />
                 </button>
-                <button
+                <Link
                     className="w-8! h-8! p-0! rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/40 transition"
-                    onClick={(e) => e.preventDefault()}
+                    to="/chat"
                 >
                     <PaperAirplaneIcon className="w-5 h-5 transform -mt-0.5 ml-0.5 -rotate-45" />
-                </button>
+                </Link>
             </div>
 
             {/* Bottom Content */}
