@@ -51,7 +51,7 @@ export default function TalentsPage() {
 
     return (
         <div className="flex flex-col space-y-4 pb-6">
-            <SearchBar placeholder="Search for talents..." />
+            <SearchBar placeholder="Cerca talenti..." />
 
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                 {talents.map((talent) => (
