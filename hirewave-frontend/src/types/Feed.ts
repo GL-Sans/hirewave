@@ -15,6 +15,7 @@ export type FeedPost = {
     contract_type?: string | null;
     budget?: string | null;
     image_url?: string | null;
+    image?: string | null;
     created_at: string;
     user: FeedUser;
 };

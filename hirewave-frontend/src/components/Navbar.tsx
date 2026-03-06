@@ -122,7 +122,7 @@ export default function Navbar() {
                             <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
                                 {user?.profile_image ? (
                                     <img
-                                        src={user.profile_image}
+                                        src={`/storage/${user.profile_image}`}
                                         alt={`${user.first_name} ${user.last_name}`}
                                         className="w-full h-full object-cover"
                                     />

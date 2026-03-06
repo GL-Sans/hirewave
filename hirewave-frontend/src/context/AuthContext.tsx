@@ -25,6 +25,7 @@ interface AuthContextType {
     login: (email: string, password: string) => Promise<void>;
     register: (data: RegisterData) => Promise<void>;
     logout: () => Promise<void>;
+    fetchUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -98,7 +99,7 @@ export const AuthProvider = ({ children }: any) => {
 
     return (
         <AuthContext.Provider
-            value={{ user, loading, login, register, logout }}
+            value={{ user, loading, login, register, logout, fetchUser }}
         >
             {children}
         </AuthContext.Provider>
