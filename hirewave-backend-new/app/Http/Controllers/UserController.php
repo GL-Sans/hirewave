@@ -9,7 +9,7 @@ class UserController extends Controller
     {
         return User::whereIn('role', ['worker', 'pro'])
             ->where('id', '!=', auth()->id())
-            ->select('id', 'first_name', 'last_name', 'role')
+            ->select('id', 'first_name', 'last_name', 'role', 'profile_image')
             ->get();
     }
 
@@ -17,7 +17,7 @@ class UserController extends Controller
     {
         return User::where('role', 'company')
             ->where('id', '!=', auth()->id())
-            ->select('id', 'first_name', 'last_name')
+            ->select('id', 'first_name', 'last_name', 'profile_image')
             ->get();
     }
 }

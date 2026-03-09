@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import axiosClient from "../api/axiosClient";
 import SearchBar from "../components/SearchBar";
 import CompanyCard from "../components/CompanyCard";
@@ -9,7 +8,14 @@ type Company = {
     first_name: string;
     last_name: string;
     location: string;
+    profile_image?: string | null;
 };
+
+import factoryFallback from "../assets/factory-fallback.png";
+
+function getCompanyImage() {
+    return factoryFallback;
+}
 
 export default function CompaniesPage() {
     const [companies, setCompanies] = useState<Company[]>([]);
@@ -40,7 +46,11 @@ export default function CompaniesPage() {
                         id={company.id}
                         firstName={company.first_name}
                         lastName={company.last_name}
-                        imageUrl={"img/favicon.png"}
+                        imageUrl={
+                            company.profile_image
+                                ? `/storage/${company.profile_image}`
+                                : getCompanyImage()
+                        }
                     />
                 ))}
             </div>

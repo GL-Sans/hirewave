@@ -240,6 +240,7 @@ export default function ProfilePage() {
                                     first_name: post.user.first_name,
                                     last_name: post.user.last_name,
                                     role: post.user.role,
+                                    profile_image: post.user.profile_image,
                                 }}
                             />
                         ))}

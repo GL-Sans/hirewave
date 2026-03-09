@@ -8,6 +8,7 @@ type Talent = {
     first_name: string;
     last_name: string;
     role: string;
+    profile_image?: string | null;
 };
 
 const MOCK_IMAGES = [
@@ -61,7 +62,11 @@ export default function TalentsPage() {
                         firstName={talent.first_name}
                         lastName={talent.last_name}
                         role={talent.role}
-                        imageUrl={getImage(talent.id)}
+                        imageUrl={
+                            talent.profile_image
+                                ? `/storage/${talent.profile_image}`
+                                : getImage(talent.id)
+                        }
                         skills={getSkills(talent.id)}
                     />
                 ))}

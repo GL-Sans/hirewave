@@ -46,7 +46,9 @@ export default function FeedPage() {
                         location={post.location ?? "—"}
                         timeAgo={formatTimeAgo(post.created_at)}
                         sponsored={post.sponsored}
-                        imageUrl={post.image_url ? post.image_url : undefined}
+                        imageUrl={
+                            post.image ? `/storage/${post.image}` : undefined
+                        }
                         tags={
                             post.type === "job" ? ["Annuncio"] : ["Richiesta"]
                         }
@@ -57,6 +59,7 @@ export default function FeedPage() {
                             first_name: post.user.first_name,
                             last_name: post.user.last_name,
                             role: post.user.role,
+                            profile_image: post.user.profile_image,
                         }}
                     />
                 ))}

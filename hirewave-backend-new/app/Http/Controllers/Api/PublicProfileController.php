@@ -10,7 +10,7 @@ class PublicProfileController extends Controller
     public function show($id)
     {
         $user = User::with(['posts.user' => function ($q) {
-            $q->select('id', 'first_name', 'last_name', 'role');
+            $q->select('id', 'first_name', 'last_name', 'role', 'profile_image');
         }, 'posts' => function ($q) {
             $q->latest();
         }])->findOrFail($id);
@@ -21,6 +21,7 @@ class PublicProfileController extends Controller
                 'first_name' => $user->first_name,
                 'last_name' => $user->last_name,
                 'role' => $user->role,
+                'profile_image' => $user->profile_image,
             ],
             'posts' => $user->posts,
         ]);

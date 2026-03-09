@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { UserIcon } from "@heroicons/react/24/solid";
 
 type FeedCardProps = {
     postId: number;
@@ -16,6 +17,7 @@ type FeedCardProps = {
         first_name: string;
         last_name: string;
         role: "worker" | "pro" | "company";
+        profile_image?: string | null;
     };
 };
 
@@ -70,9 +72,22 @@ export default function FeedCard(props: FeedCardProps) {
                 {/* Autore */}
                 <Link
                     to={`/profile/${author.id}`}
-                    className="text-xs text-blue-600 font-semibold hover:underline"
+                    className="flex items-center gap-2 mt-1 group"
                 >
-                    {author.first_name} {author.last_name}
+                    <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
+                        {author.profile_image ? (
+                            <img
+                                src={`/storage/${author.profile_image}`}
+                                alt={`${author.first_name} avatar`}
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <UserIcon className="w-3.5 h-3.5 text-slate-400" />
+                        )}
+                    </div>
+                    <span className="text-sm text-slate-900 font-medium group-hover:text-blue-600 transition-colors">
+                        {author.first_name} {author.last_name}
+                    </span>
                 </Link>
 
                 {/* Tags */}

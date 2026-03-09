@@ -3,6 +3,7 @@ export type FeedUser = {
     first_name: string;
     last_name: string;
     role: "worker" | "pro" | "company";
+    profile_image?: string | null;
 };
 
 export type FeedPost = {
