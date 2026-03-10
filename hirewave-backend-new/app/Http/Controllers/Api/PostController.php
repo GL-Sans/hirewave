@@ -22,10 +22,6 @@ class PostController extends Controller
             'location' => 'nullable|string|max:255',
             'contract_type' => 'nullable|string|max:255',
             'budget' => 'nullable|string|max:255',
-<<<<<<< HEAD
-        ]);
-
-=======
             'image' => 'nullable|image|max:10240', // 10MB max
         ]);
 
@@ -34,7 +30,6 @@ class PostController extends Controller
             $imagePath = $request->file('image')->store('posts', 'public');
         }
 
->>>>>>> dev_stefano
         $post = Post::create([
             'user_id' => $user->id,
             'type' => $type,
@@ -43,10 +38,7 @@ class PostController extends Controller
             'location' => $validated['location'] ?? null,
             'contract_type' => $validated['contract_type'] ?? null,
             'budget' => $validated['budget'] ?? null,
-<<<<<<< HEAD
-=======
             'image' => $imagePath,
->>>>>>> dev_stefano
             'sponsored' => false,
         ]);
 

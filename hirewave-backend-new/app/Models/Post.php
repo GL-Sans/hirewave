@@ -18,10 +18,6 @@ class Post extends Model
         'sponsored',
         'contract_type',
         'budget',
-<<<<<<< HEAD
-    ];
-
-=======
         'image',
     ];
 
@@ -32,7 +28,6 @@ class Post extends Model
         return $this->image ? config('app.url') . '/storage/' . $this->image : null;
     }
 
->>>>>>> dev_stefano
     // Relazione: un post appartiene a un utente
     public function user()
     {

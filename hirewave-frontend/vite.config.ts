@@ -9,24 +9,6 @@ export default defineConfig({
       "/api": {
         target: "http://localhost:8000",
         changeOrigin: true,
-<<<<<<< HEAD
-      },
-      "/login": {
-        target: "http://localhost:8000",
-        changeOrigin: true,
-      },
-      "/logout": {
-        target: "http://localhost:8000",
-        changeOrigin: true,
-      },
-      "/sanctum": {
-        target: "http://localhost:8000",
-        changeOrigin: true,
-      },
-    },
-  },
-});
-=======
         configure: (proxy, options) => {
           proxy.on('proxyRes', (proxyRes, req, res) => {
             const cookies = proxyRes.headers['set-cookie'];
@@ -45,4 +27,3 @@ export default defineConfig({
     },
   },
 });
->>>>>>> dev_stefano

@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-// import { Bars3Icon } from "@heroicons/react/24/outline";
-=======
 import { useState, useEffect, useRef } from "react";
->>>>>>> dev_stefano
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 import {
@@ -12,12 +8,9 @@ import {
     UserIcon,
     PlusCircleIcon,
     ChatBubbleLeftEllipsisIcon,
-<<<<<<< HEAD
-=======
     ChevronDownIcon,
     Cog6ToothIcon,
     ArrowRightOnRectangleIcon,
->>>>>>> dev_stefano
 } from "@heroicons/react/24/outline";
 
 // type Props = {
@@ -26,9 +19,6 @@ import {
 // { onMenuClick }: Props #da mettere in Navbar()
 
 export default function Navbar() {
-<<<<<<< HEAD
-    const { user } = useAuth();
-=======
     const { user, logout } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -47,7 +37,6 @@ export default function Navbar() {
         return () =>
             document.removeEventListener("mousedown", handleClickOutside);
     }, []);
->>>>>>> dev_stefano
 
     return (
         <header className="fixed left-0 w-full z-50 bg-white shadow-sm bottom-0 md:top-0 md:bottom-auto">
@@ -122,25 +111,6 @@ export default function Navbar() {
                             <ChatBubbleLeftEllipsisIcon className="w-6 h-6 md:hidden" />
                             <span>Chat</span>
                         </Link>
-<<<<<<< HEAD
-
-                        {/* PROFILO */}
-                        <Link
-                            to={`/profile/${user?.name}`}
-                            className="flex flex-col items-center md:flex-row px-3 py-2 rounded-lg text-xs md:text-sm text-slate-600 hover:text-slate-900"
-                        >
-                            <UserIcon className="w-6 h-6 md:hidden" />
-                            <span>Profilo</span>
-                        </Link>
-                    </nav>
-
-                    {/* UTENTE (solo desktop) */}
-                    <div className="hidden md:flex items-center gap-2">
-                        <span className="text-xs text-slate-500">Ciao,</span>
-                        <span className="text-sm font-semibold text-slate-800">
-                            {user?.name ?? "Guest"}
-                        </span>
-=======
                     </nav>
 
                     {/* UTENTE (solo desktop) */}
@@ -197,7 +167,6 @@ export default function Navbar() {
                                 </button>
                             </div>
                         )}
->>>>>>> dev_stefano
                     </div>
                 </div>
             </div>

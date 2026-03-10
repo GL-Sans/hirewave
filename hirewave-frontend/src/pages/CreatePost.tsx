@@ -59,9 +59,6 @@ export default function CreatePostPage() {
         setError(null);
 
         try {
-<<<<<<< HEAD
-            await axiosClient.post("/api/posts", form);
-=======
             const formData = new FormData();
             formData.append("title", form.title);
             if (form.description)
@@ -79,7 +76,6 @@ export default function CreatePostPage() {
                     "Content-Type": "multipart/form-data",
                 },
             });
->>>>>>> dev_stefano
             navigate("/feed");
         } catch (err: any) {
             setError("Errore nella creazione del post");
