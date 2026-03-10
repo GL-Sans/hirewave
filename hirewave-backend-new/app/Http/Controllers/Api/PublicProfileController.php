@@ -9,13 +9,6 @@ class PublicProfileController extends Controller
 {
     public function show($name)
     {
-<<<<<<< HEAD
-        $user = User::with(['posts.user' => function ($q) {
-            $q->select('id', 'name', 'role');
-        }, 'posts' => function ($q) {
-            $q->latest();
-        }])->where('name', $name)->firstOrFail();
-=======
         [$firstName, $lastName] = explode('-', $name, 2);
 
         $user = User::with(['posts.user' => function ($q) {
@@ -25,26 +18,16 @@ class PublicProfileController extends Controller
         }])->where('first_name', ucfirst($firstName))
         ->where('last_name', ucfirst($lastName))
         ->firstOrFail();
->>>>>>> dev_stefano
 
         return response()->json([
             'user' => [
                 'id' => $user->id,
-<<<<<<< HEAD
-                'name' => $user->name,
-                'role' => $user->role,
-=======
                 'first_name' => $user->first_name,
                 'last_name' => $user->last_name,
                 'role' => $user->role,
                 'profile_image' => $user->profile_image,
->>>>>>> dev_stefano
             ],
             'posts' => $user->posts,
         ]);
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> dev_stefano

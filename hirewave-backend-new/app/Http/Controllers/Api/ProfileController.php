@@ -4,11 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
-<<<<<<< HEAD
-=======
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
->>>>>>> dev_stefano
 
 class ProfileController extends Controller
 {
@@ -18,8 +15,6 @@ class ProfileController extends Controller
             'user' => Auth::user()
         ]);
     }
-<<<<<<< HEAD
-=======
 
     public function uploadImage(Request $request)
     {
@@ -27,7 +22,7 @@ class ProfileController extends Controller
             'image' => 'required|image|max:10240', // 10MB max
         ]);
 
-        $user = Auth::user();
+        $user = \App\Models\User::find(Auth::id());
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('profile', 'public');
@@ -46,5 +41,4 @@ class ProfileController extends Controller
             'user' => $user
         ]);
     }
->>>>>>> dev_stefano
 }
