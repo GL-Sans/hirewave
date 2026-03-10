@@ -7,13 +7,17 @@ use App\Models\User;
 
 class PublicProfileController extends Controller
 {
-    public function show($id)
+    public function show($name)
     {
+        [$firstName, $lastName] = explode('-', $name, 2);
+
         $user = User::with(['posts.user' => function ($q) {
             $q->select('id', 'first_name', 'last_name', 'role', 'profile_image');
         }, 'posts' => function ($q) {
             $q->latest();
-        }])->findOrFail($id);
+        }])->where('first_name', ucfirst($firstName))
+        ->where('last_name', ucfirst($lastName))
+        ->firstOrFail();
 
         return response()->json([
             'user' => [

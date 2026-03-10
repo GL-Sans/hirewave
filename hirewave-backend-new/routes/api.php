@@ -20,6 +20,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/talents', [UserController::class, 'talents']);
     Route::get('/companies', [UserController::class, 'companies']);
-    Route::get('/profiles/{id}', [PublicProfileController::class, 'show']);
+    Route::get('/profile/{name}', [PublicProfileController::class, 'show']);
     Route::post('/posts', [PostController::class, 'store']);
 });

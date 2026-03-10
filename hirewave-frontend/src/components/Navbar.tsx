@@ -139,7 +139,7 @@ export default function Navbar() {
                         {isMenuOpen && (
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-50 overflow-hidden animate-in fade-in zoom-in duration-200">
                                 <Link
-                                    to="/profile"
+                                    to={`/profile/${user?.first_name?.toLowerCase()}-${user?.last_name?.toLowerCase()}`}
                                     onClick={() => setIsMenuOpen(false)}
                                     className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                                 >

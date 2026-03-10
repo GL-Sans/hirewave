@@ -71,7 +71,7 @@ export default function FeedCard(props: FeedCardProps) {
 
                 {/* Autore */}
                 <Link
-                    to={`/profile/${author.id}`}
+                    to={`/profile/${author.first_name.toLowerCase()}-${author.last_name.toLowerCase()}`}
                     className="flex items-center gap-2 mt-1 group"
                 >
                     <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">

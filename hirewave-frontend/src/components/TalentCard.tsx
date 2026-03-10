@@ -25,7 +25,7 @@ export default function TalentCard(props: TalentCardProps) {
 
     return (
         <Link
-            to={`/profile/${id}`}
+            to={`/profile/${firstName.toLowerCase()}-${lastName.toLowerCase()}`}
             className="block relative h-[320px] rounded-[20px] overflow-hidden shadow-sm group"
         >
             {/* Background Image */}
