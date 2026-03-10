@@ -2,15 +2,25 @@ import { useState } from "react";
 import {
     MagnifyingGlassIcon,
     PaperAirplaneIcon,
+<<<<<<< HEAD
     FaceSmileIcon,
     PaperClipIcon,
+=======
+    PaperClipIcon,
+    ChevronLeftIcon,
+>>>>>>> dev_stefano
 } from "@heroicons/react/24/outline";
 import { ChatMessage } from "../components/ChatMessage";
 
 const MOCK_CONTACTS = [
     {
         id: 1,
+<<<<<<< HEAD
         name: "Mario Rossi",
+=======
+        first_name: "Mario",
+        last_name: "Rossi",
+>>>>>>> dev_stefano
         lastMessage: "Ciao, ho visto il tuo annuncio...",
         time: "10:30",
         avatar: "MR",
@@ -18,7 +28,12 @@ const MOCK_CONTACTS = [
     },
     {
         id: 2,
+<<<<<<< HEAD
         name: "Luigi Bianchi",
+=======
+        first_name: "Luigi",
+        last_name: "Bianchi",
+>>>>>>> dev_stefano
         lastMessage: "Va bene per domani alle 15?",
         time: "Ieri",
         avatar: "LB",
@@ -26,7 +41,12 @@ const MOCK_CONTACTS = [
     },
     {
         id: 3,
+<<<<<<< HEAD
         name: "Anna Verga",
+=======
+        first_name: "Anna",
+        last_name: "Verga",
+>>>>>>> dev_stefano
         lastMessage: "Grazie mille!",
         time: "Lun",
         avatar: "AV",
@@ -58,11 +78,28 @@ const MOCK_MESSAGES = [
 export default function ChatPage() {
     const [selectedContact, setSelectedContact] = useState(MOCK_CONTACTS[0]);
     const [message, setMessage] = useState("");
+<<<<<<< HEAD
+=======
+    const [showChatOnMobile, setShowChatOnMobile] = useState(false);
+
+    const handleSelectContact = (contact: any) => {
+        setSelectedContact(contact);
+        setShowChatOnMobile(true);
+    };
+>>>>>>> dev_stefano
 
     return (
         <div className="flex h-[calc(100vh-120px)] bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200">
             {/* Sidebar Contatti */}
+<<<<<<< HEAD
             <div className="w-full md:w-80 border-r border-slate-100 flex flex-col p-0">
+=======
+            <div
+                className={`w-full md:w-80 border-r border-slate-100 flex flex-col p-0 ${
+                    showChatOnMobile ? "hidden md:flex" : "flex"
+                }`}
+            >
+>>>>>>> dev_stefano
                 <div className="relative">
                     <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
@@ -76,7 +113,11 @@ export default function ChatPage() {
                     {MOCK_CONTACTS.map((contact) => (
                         <div
                             key={contact.id}
+<<<<<<< HEAD
                             onClick={() => setSelectedContact(contact)}
+=======
+                            onClick={() => handleSelectContact(contact)}
+>>>>>>> dev_stefano
                             className={`p-4 flex items-center gap-3 cursor-pointer transition-colors ${
                                 selectedContact.id === contact.id
                                     ? "bg-blue-50"
@@ -93,9 +134,13 @@ export default function ChatPage() {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-start mb-1">
+<<<<<<< HEAD
                                     <h3 className="font-semibold text-slate-900 truncate">
                                         {contact.name}
                                     </h3>
+=======
+                                    {contact.first_name} {contact.last_name}
+>>>>>>> dev_stefano
                                     <span className="text-[10px] text-slate-400 whitespace-nowrap">
                                         {contact.time}
                                     </span>
@@ -110,16 +155,37 @@ export default function ChatPage() {
             </div>
 
             {/* Area Messaggi */}
+<<<<<<< HEAD
             <div className="hidden md:flex flex-1 flex-col">
                 {/* Header Chat */}
                 <div className="p-4 border-b border-slate-50 flex items-center justify-between">
+=======
+            <div
+                className={`${
+                    showChatOnMobile ? "flex" : "hidden"
+                } md:flex flex-1 flex-col`}
+            >
+                {/* Header Chat */}
+                <div className="p-4 border-b border-slate-50 flex items-center gap-3">
+                    <button
+                        onClick={() => setShowChatOnMobile(false)}
+                        className="md:hidden p-2 -ml-2 text-slate-400 hover:text-slate-600"
+                    >
+                        <ChevronLeftIcon className="w-6 h-6" />
+                    </button>
+>>>>>>> dev_stefano
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
                             {selectedContact.avatar}
                         </div>
                         <div>
                             <h2 className="font-semibold text-slate-900">
+<<<<<<< HEAD
                                 {selectedContact.name}
+=======
+                                {selectedContact.first_name}{" "}
+                                {selectedContact.last_name}
+>>>>>>> dev_stefano
                             </h2>
                             <p className="text-xs text-green-500">
                                 {selectedContact.online ? "Online" : "Offline"}
