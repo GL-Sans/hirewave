@@ -58,7 +58,7 @@ export default function JobCard(props: JobCardProps) {
 
         <div className="flex items-center justify-between text-xs text-slate-600 mt-2">
           <span>{contractType}</span>
-          <span className="font-semibold">{budget}</span>
+          <span className="font-semibold">{budget !== "—" && budget ? `€ ${budget}` : budget}</span>
         </div>
 
         <div className="mt-3 flex flex-col gap-2">

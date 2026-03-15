@@ -150,12 +150,25 @@ export default function CreatePostPage() {
                     onChange={handleChange}
                 />
 
-                <input
-                    name="budget"
-                    placeholder="Budget"
-                    className="w-full border rounded-lg px-3 py-2 text-sm"
-                    onChange={handleChange}
-                />
+                <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 pointer-events-none">
+                        €
+                    </span>
+                    <input
+                        name="budget"
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="Budget"
+                        className="w-full border rounded-lg pl-8 pr-3 py-2 text-sm"
+                        onChange={handleChange}
+                        onKeyDown={(e) => {
+                            if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
+                                e.preventDefault();
+                            }
+                        }}
+                    />
+                </div>
 
                 <button
                     type="submit"
