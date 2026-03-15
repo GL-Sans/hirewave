@@ -220,6 +220,7 @@ export default function ProfilePage() {
                                 postId={post.id}
                                 type={post.type}
                                 title={post.title}
+                                description={post.description}
                                 location={post.location ?? "—"}
                                 timeAgo="—"
                                 sponsored={post.sponsored}

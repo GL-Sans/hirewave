@@ -43,6 +43,7 @@ export default function FeedPage() {
                         postId={post.id}
                         type={post.type}
                         title={post.title}
+                        description={post.description}
                         location={post.location ?? "—"}
                         timeAgo={formatTimeAgo(post.created_at)}
                         sponsored={post.sponsored}

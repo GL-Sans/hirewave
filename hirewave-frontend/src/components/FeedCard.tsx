@@ -6,6 +6,7 @@ type FeedCardProps = {
     type: "job" | "service";
     title: string;
     location: string;
+    description?: string | null;
     timeAgo: string;
     sponsored?: boolean;
     imageUrl?: string;
@@ -25,6 +26,7 @@ export default function FeedCard(props: FeedCardProps) {
     const {
         type,
         title,
+        description,
         location,
         timeAgo,
         sponsored,
@@ -68,6 +70,13 @@ export default function FeedCard(props: FeedCardProps) {
                 <h2 className="font-semibold text-slate-900 text-sm line-clamp-2">
                     {title}
                 </h2>
+
+                {/* Descrizione */}
+                {description && (
+                    <p className="text-slate-600 text-sm line-clamp-3 mt-1">
+                        {description}
+                    </p>
+                )}
 
                 {/* Autore */}
                 <Link
