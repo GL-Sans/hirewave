@@ -13,6 +13,7 @@ type FeedCardProps = {
     tags: string[];
     contractType: string;
     budget: string;
+    budgetType?: string | null;
     author: {
         id: number;
         first_name: string;
@@ -34,6 +35,7 @@ export default function FeedCard(props: FeedCardProps) {
         tags,
         contractType,
         budget,
+        budgetType,
         author,
     } = props;
 
@@ -114,7 +116,7 @@ export default function FeedCard(props: FeedCardProps) {
                 {/* Meta */}
                 <div className="flex items-center justify-between text-xs text-slate-600 mt-2">
                     <span>{contractType}</span>
-                    <span className="font-semibold">{budget !== "—" && budget ? `€ ${budget}` : budget}</span>
+                    <span className="font-semibold">{budget !== "—" && budget ? `€ ${budget}${budgetType ? ` / ${budgetType}` : ""}` : budget}</span>
                 </div>
 
                 {/* CTA dinamiche */}

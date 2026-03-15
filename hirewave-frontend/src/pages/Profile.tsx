@@ -236,6 +236,7 @@ export default function ProfilePage() {
                                 }
                                 contractType={post.contract_type ?? "—"}
                                 budget={post.budget ?? "—"}
+                                budgetType={post.budget_type ?? null}
                                 author={{
                                     id: post.user.id,
                                     first_name: post.user.first_name,

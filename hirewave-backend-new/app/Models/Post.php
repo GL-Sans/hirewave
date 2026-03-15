@@ -18,6 +18,7 @@ class Post extends Model
         'sponsored',
         'contract_type',
         'budget',
+        'budget_type',
         'image',
     ];
 

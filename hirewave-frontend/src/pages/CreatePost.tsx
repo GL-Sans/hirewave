@@ -5,12 +5,14 @@ import { CameraIcon } from "@heroicons/react/24/outline";
 
 export default function CreatePostPage() {
     const navigate = useNavigate();
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
     const [form, setForm] = useState({
         title: "",
         description: "",
         location: "",
         contract_type: "",
         budget: "",
+        budget_type: "Ora",
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -54,13 +56,25 @@ export default function CreatePostPage() {
         e.stopPropagation();
         setDragActive(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            setSelectedFile(e.dataTransfer.files[0]);
+            const file = e.dataTransfer.files[0];
+            if (file.size > MAX_FILE_SIZE) {
+                setError("La dimensione massima della foto è 10 MB.");
+                return;
+            }
+            setError(null);
+            setSelectedFile(file);
         }
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            setSelectedFile(e.target.files[0]);
+            const file = e.target.files[0];
+            if (file.size > MAX_FILE_SIZE) {
+                setError("La dimensione massima della foto è 10 MB.");
+                return;
+            }
+            setError(null);
+            setSelectedFile(file);
         }
     };
 
@@ -81,7 +95,10 @@ export default function CreatePostPage() {
             if (form.location) formData.append("location", form.location);
             if (form.contract_type)
                 formData.append("contract_type", form.contract_type);
-            if (form.budget) formData.append("budget", form.budget);
+            if (form.budget) {
+                formData.append("budget", form.budget);
+                formData.append("budget_type", form.budget_type);
+            }
             if (selectedFile) {
                 formData.append("image", selectedFile);
             }
@@ -196,26 +213,40 @@ export default function CreatePostPage() {
                     <option value="A chiamata">A chiamata</option>
                 </select>
 
-                <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 pointer-events-none">
-                        €
-                    </span>
-                    <input
-                        name="budget"
-                        type="number"
-                        min="0"
-                        step="1"
-                        placeholder="Budget"
-                        className="w-full border rounded-lg pl-8 pr-3 py-2 text-sm"
+                <div className="flex gap-2">
+                    <div className="relative flex-1">
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 pointer-events-none">
+                            €
+                        </span>
+                        <input
+                            name="budget"
+                            type="number"
+                            min="0"
+                            step="1"
+                            placeholder="Budget"
+                            className="w-full border rounded-lg pl-8 pr-3 py-2 text-sm"
+                            onChange={handleChange}
+                            onKeyDown={(e) => {
+                                if (
+                                    ["e", "E", "+", "-", ".", ","].includes(
+                                        e.key,
+                                    )
+                                ) {
+                                    e.preventDefault();
+                                }
+                            }}
+                        />
+                    </div>
+                    <select
+                        name="budget_type"
+                        className="border rounded-lg px-3 py-2 text-sm bg-white"
                         onChange={handleChange}
-                        onKeyDown={(e) => {
-                            if (
-                                ["e", "E", "+", "-", ".", ","].includes(e.key)
-                            ) {
-                                e.preventDefault();
-                            }
-                        }}
-                    />
+                        value={form.budget_type}
+                    >
+                        <option value="Ora">Ora</option>
+                        <option value="Mensile">Mensile</option>
+                        <option value="Fisso">Fisso</option>
+                    </select>
                 </div>
 
                 <button
