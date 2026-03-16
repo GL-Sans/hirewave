@@ -6,12 +6,14 @@ type FeedCardProps = {
     type: "job" | "service";
     title: string;
     location: string;
+    description?: string | null;
     timeAgo: string;
     sponsored?: boolean;
     imageUrl?: string;
     tags: string[];
     contractType: string;
     budget: string;
+    budgetType?: string | null;
     author: {
         id: number;
         first_name: string;
@@ -25,6 +27,7 @@ export default function FeedCard(props: FeedCardProps) {
     const {
         type,
         title,
+        description,
         location,
         timeAgo,
         sponsored,
@@ -32,6 +35,7 @@ export default function FeedCard(props: FeedCardProps) {
         tags,
         contractType,
         budget,
+        budgetType,
         author,
     } = props;
 
@@ -69,6 +73,13 @@ export default function FeedCard(props: FeedCardProps) {
                     {title}
                 </h2>
 
+                {/* Descrizione */}
+                {description && (
+                    <p className="text-slate-600 text-sm line-clamp-3 mt-1">
+                        {description}
+                    </p>
+                )}
+
                 {/* Autore */}
                 <Link
                     to={`/profile/${author.first_name.toLowerCase()}-${author.last_name.toLowerCase()}`}
@@ -105,7 +116,7 @@ export default function FeedCard(props: FeedCardProps) {
                 {/* Meta */}
                 <div className="flex items-center justify-between text-xs text-slate-600 mt-2">
                     <span>{contractType}</span>
-                    <span className="font-semibold">{budget}</span>
+                    <span className="font-semibold">{budget !== "—" && budget ? `€ ${budget}${budgetType ? ` / ${budgetType}` : ""}` : budget}</span>
                 </div>
 
                 {/* CTA dinamiche */}

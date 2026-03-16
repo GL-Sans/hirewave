@@ -20,8 +20,9 @@ class PostController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'location' => 'nullable|string|max:255',
-            'contract_type' => 'nullable|string|max:255',
-            'budget' => 'nullable|string|max:255',
+            'contract_type' => 'nullable|string|in:Contratto a tempo indeterminato,Contratto a tempo determinato,Partita IVA,Apprendistato,Part-time,A chiamata',
+            'budget' => 'nullable|integer|min:0',
+            'budget_type' => 'nullable|string|in:Ora,Mensile,Fisso',
             'image' => 'nullable|image|max:10240', // 10MB max
         ]);
 
@@ -38,6 +39,7 @@ class PostController extends Controller
             'location' => $validated['location'] ?? null,
             'contract_type' => $validated['contract_type'] ?? null,
             'budget' => $validated['budget'] ?? null,
+            'budget_type' => $validated['budget_type'] ?? 'Ora',
             'image' => $imagePath,
             'sponsored' => false,
         ]);

@@ -43,6 +43,7 @@ export default function FeedPage() {
                         postId={post.id}
                         type={post.type}
                         title={post.title}
+                        description={post.description}
                         location={post.location ?? "—"}
                         timeAgo={formatTimeAgo(post.created_at)}
                         sponsored={post.sponsored}
@@ -54,6 +55,7 @@ export default function FeedPage() {
                         }
                         contractType={post.contract_type ?? "—"}
                         budget={post.budget ?? "—"}
+                        budgetType={post.budget_type ?? null}
                         author={{
                             id: post.user.id,
                             first_name: post.user.first_name,
