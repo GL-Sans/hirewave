@@ -23,12 +23,24 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'first_name',
-        'last_name',
-        'email',
-        'password',
-        'role',
-        'profile_image',
+    'first_name',
+    'last_name',
+    'email',
+    'password',
+    'role',
+    'profile_image',
+    'bio',
+    'city',
+    'country',
+    'website',
+    'phone',
+    'birth_date',
+    'years_experience',
+    'contract_type',
+    'available',
+    'skills',
+    'languages',
+    'curriculum_public',
     ];
 
     /**
@@ -51,6 +63,11 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'birth_date' => 'date',
+            'available' => 'boolean',
+            'skills' => 'array',
+            'languages' => 'array',
+            'curriculum_public' => 'boolean',
         ];
     }
 }

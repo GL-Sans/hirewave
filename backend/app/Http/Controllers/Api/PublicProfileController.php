@@ -26,6 +26,17 @@ class PublicProfileController extends Controller
                 'last_name' => $user->last_name,
                 'role' => $user->role,
                 'profile_image' => $user->profile_image,
+                'curriculum_public' => $user->curriculum_public,
+                // questi solo se curriculum è pubblico
+                'bio' => $user->curriculum_public ? $user->bio : null,
+                'city' => $user->curriculum_public ? $user->city : null,
+                'country' => $user->curriculum_public ? $user->country : null,
+                'website' => $user->curriculum_public ? $user->website : null,
+                'years_experience' => $user->curriculum_public ? $user->years_experience : null,
+                'contract_type' => $user->curriculum_public ? $user->contract_type : null,
+                'available' => $user->curriculum_public ? $user->available : null,
+                'skills' => $user->curriculum_public ? $user->skills : null,
+                'languages' => $user->curriculum_public ? $user->languages : null,
             ],
             'posts' => $user->posts,
         ]);

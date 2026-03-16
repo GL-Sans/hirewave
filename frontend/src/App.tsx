@@ -16,6 +16,7 @@ import GuestLayout from "./layout/GuestLayout";
 import CreatePostPage from "./pages/CreatePost";
 import ChatPage from "./pages/Chat";
 import SettingsPage from "./pages/Settings";
+import CurriculumPage from "./pages/Curriculum";
 
 function App() {
     return (
@@ -46,6 +47,10 @@ function App() {
                             <Route
                                 path="/profile/:name"
                                 element={<ProfilePage />}
+                            />
+                            <Route
+                                path="/profile/:name/curriculum"
+                                element={<CurriculumPage />}
                             />
                             <Route
                                 path="/create"

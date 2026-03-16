@@ -6,6 +6,7 @@ import type { FeedPost } from "../types/Feed";
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 
+
 export default function ProfilePage() {
     const { name } = useParams();
     const [user, setUser] = useState<any>(null);
@@ -58,7 +59,7 @@ export default function ProfilePage() {
                     <h1 className="text-xl font-semibold">{user.first_name} {user.last_name}</h1>
                     <p className="text-sm pt-1 text-slate-500 capitalize">{user.role}</p>
                     <Link
-                        to={isMyProfile ? "/profile/curriculum" : `/profile/${userSlug}/curriculum`}
+                        to={`/profile/${userSlug}/curriculum`}
                         className="text-sm text-slate-500"
                     >
                         <span>CV</span>
