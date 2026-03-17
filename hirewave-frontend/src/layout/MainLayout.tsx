@@ -29,10 +29,10 @@ export default function MainLayout() {
         onClose={() => setMenuOpen(false)}
       /> */}
 
-      <main className="pt-4 md:pt-20 pb-8 max-w-5xl mx-auto px-4">
+      <main className="pt-20 pb-24 md:pb-8 max-w-5xl mx-auto px-4">
         <Outlet />
       </main>
-      <Footer />
+      {/* <Footer /> */}
        <Navbar /* onMenuClick={toggleMenu} */ /> 
     </div>
   );

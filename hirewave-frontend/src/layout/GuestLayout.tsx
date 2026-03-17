@@ -35,7 +35,7 @@ export default function MainLayout() {
       <main className="pt-0 md:pt-20 pb-20 md:pb-8 max-w-5xl mx-auto px-4">
         <Outlet />
       </main>
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 }
