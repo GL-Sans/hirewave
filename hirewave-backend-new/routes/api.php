@@ -18,6 +18,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [ProfileController::class, 'show']);
     Route::post('/me/image', [ProfileController::class, 'uploadImage']);
     Route::post('/me/cv', [ProfileController::class, 'uploadCv']);
+    Route::get('/me/cv/download', [ProfileController::class, 'downloadCv']);
     Route::put('/me/description', [ProfileController::class, 'updateDescription']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/talents', [UserController::class, 'talents']);

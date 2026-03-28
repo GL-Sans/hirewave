@@ -51,10 +51,11 @@ class ProfileController extends Controller
         $user = Auth::user();
 
         if ($request->hasFile('cv')) {
-            $path = $request->file('cv')->store('cvs', 'public');
+            // Store on local disk (not public) to prevent direct URL access
+            $path = $request->file('cv')->store('cvs', 'local');
             
             // if ($user->cv) {
-            //     Storage::disk('public')->delete($user->cv);
+            //     Storage::disk('local')->delete($user->cv);
             // }
 
             $user->cv = $path;
@@ -65,6 +66,17 @@ class ProfileController extends Controller
             'message' => 'CV uploaded successfully',
             'user' => $user
         ]);
+    }
+
+    public function downloadCv()
+    {
+        $user = Auth::user();
+        
+        if (!$user->cv || !Storage::disk('local')->exists($user->cv)) {
+            return response()->json(['message' => 'CV non trovato'], 404);
+        }
+
+        return Storage::disk('local')->download($user->cv);
     }
 
     public function updateDescription(Request $request)

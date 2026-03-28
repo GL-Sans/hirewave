@@ -22,7 +22,6 @@ class PublicProfileController extends Controller
                 'last_name' => $user->last_name,
                 'role' => $user->role,
                 'profile_image' => $user->profile_image,
-                'cv' => $user->cv,
                 'description' => $user->description,
             ],
             'posts' => $user->posts,
