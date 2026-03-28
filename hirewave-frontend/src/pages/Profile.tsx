@@ -13,6 +13,9 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [uploadingCv, setUploadingCv] = useState(false);
+    const [isEditingDescription, setIsEditingDescription] = useState(false);
+    const [descriptionText, setDescriptionText] = useState("");
+    const [savingDescription, setSavingDescription] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cvInputRef = useRef<HTMLInputElement>(null);
     const { user: loggedUser, fetchUser } = useAuth();
@@ -46,6 +49,12 @@ export default function ProfilePage() {
 
         fetchProfile();
     }, [id]);
+
+    useEffect(() => {
+        if (user) {
+            setDescriptionText(user.description || "");
+        }
+    }, [user]);
 
     const handleImageChange = async (
         e: React.ChangeEvent<HTMLInputElement>,
@@ -94,6 +103,24 @@ export default function ProfilePage() {
         } finally {
             setUploadingCv(false);
             if (cvInputRef.current) cvInputRef.current.value = "";
+        }
+    };
+
+    const handleSaveDescription = async () => {
+        if (!isMyProfile) return;
+        setSavingDescription(true);
+        try {
+            const res = await axiosClient.put("/api/me/description", {
+                description: descriptionText,
+            });
+            setUser(res.data.user);
+            await fetchUser();
+            setIsEditingDescription(false);
+        } catch (err) {
+            console.error("Errore salvataggio descrizione:", err);
+            alert("Errore durante il salvataggio della descrizione.");
+        } finally {
+            setSavingDescription(false);
         }
     };
 
@@ -178,18 +205,66 @@ export default function ProfilePage() {
                         <h1 className="text-2xl font-bold text-gray-900">
                             {user.first_name} {user.last_name}
                         </h1>
-                        <p className="text-sm font-medium text-blue-600 uppercase tracking-wide mt-1">
-                            {user.role === "company"
-                                ? "Azienda"
-                                : user.role === "worker"
-                                  ? "Lavoratore"
-                                  : user.role === "pro"
-                                    ? "Professionista"
-                                    : user.role}
-                        </p>
+
+                        {/* Description Section */}
+                        {isEditingDescription ? (
+                            <div className="mt-3 max-w-2xl mx-auto md:mx-0 text-left">
+                                <textarea
+                                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                    rows={4}
+                                    value={descriptionText}
+                                    onChange={(e) => setDescriptionText(e.target.value)}
+                                    placeholder="Aggiungi una descrizione..."
+                                    disabled={savingDescription}
+                                />
+                                <div className="mt-2 flex gap-2 justify-center md:justify-start">
+                                    <button
+                                        onClick={handleSaveDescription}
+                                        disabled={savingDescription}
+                                        className="px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded hover:bg-indigo-700 disabled:opacity-50"
+                                    >
+                                        {savingDescription ? "Salvataggio..." : "Salva"}
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setIsEditingDescription(false);
+                                            setDescriptionText(user.description || "");
+                                        }}
+                                        disabled={savingDescription}
+                                        className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded hover:bg-gray-200 disabled:opacity-50"
+                                    >
+                                        Annulla
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="mt-3 max-w-2xl group cursor-pointer" onClick={() => isMyProfile && setIsEditingDescription(true)}>
+                                {user.description ? (
+                                    <p className="text-sm text-gray-700 whitespace-pre-wrap relative inline-block text-center md:text-left">
+                                        {user.description}
+                                        {isMyProfile && (
+                                            <span className="ml-2 inline-flex opacity-0 group-hover:opacity-100 transition-opacity align-middle">
+                                                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                </svg>
+                                            </span>
+                                        )}
+                                    </p>
+                                ) : (
+                                    isMyProfile && (
+                                        <button className="text-sm text-indigo-600 font-medium hover:text-indigo-800 flex items-center justify-center md:justify-start mx-auto md:mx-0">
+                                            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                            </svg>
+                                            Aggiungi una descrizione
+                                        </button>
+                                    )
+                                )}
+                            </div>
+                        )}
 
                         {/* CV Section */}
-                        <div className="mt-4 flex flex-wrap gap-3 justify-center md:justify-start">
+                        <div className="mt-5 flex flex-wrap gap-3 justify-center md:justify-start border-t border-gray-100 pt-5">
                             {user.cv && (
                                 <a
                                     href={`/storage/${user.cv}`}

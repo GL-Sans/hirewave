@@ -66,4 +66,20 @@ class ProfileController extends Controller
             'user' => $user
         ]);
     }
+
+    public function updateDescription(Request $request)
+    {
+        $request->validate([
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        $user = Auth::user();
+        $user->description = $request->description;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Description updated successfully',
+            'user' => $user
+        ]);
+    }
 }

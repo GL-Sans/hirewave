@@ -30,6 +30,7 @@ class User extends Authenticatable
         'role',
         'profile_image',
         'cv',
+        'description',
     ];
 
     /**
