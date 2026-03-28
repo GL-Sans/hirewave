@@ -12,7 +12,9 @@ export default function ProfilePage() {
     const [posts, setPosts] = useState<FeedPost[]>([]);
     const [loading, setLoading] = useState(true);
     const [uploadingImage, setUploadingImage] = useState(false);
+    const [uploadingCv, setUploadingCv] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const cvInputRef = useRef<HTMLInputElement>(null);
     const { user: loggedUser, fetchUser } = useAuth();
     const isMyProfile = !id || Number(id) === loggedUser?.id;
 
@@ -67,6 +69,31 @@ export default function ProfilePage() {
         } finally {
             setUploadingImage(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+    };
+
+    const handleCvChange = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploadingCv(true);
+        const formData = new FormData();
+        formData.append("cv", file);
+
+        try {
+            const res = await axiosClient.post("/api/me/cv", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            setUser(res.data.user);
+            await fetchUser();
+        } catch (err) {
+            console.error("Errore caricamento CV:", err);
+            alert("Errore durante il caricamento del CV.");
+        } finally {
+            setUploadingCv(false);
+            if (cvInputRef.current) cvInputRef.current.value = "";
         }
     };
 
@@ -160,6 +187,45 @@ export default function ProfilePage() {
                                     ? "Professionista"
                                     : user.role}
                         </p>
+
+                        {/* CV Section */}
+                        <div className="mt-4 flex flex-wrap gap-3 justify-center md:justify-start">
+                            {user.cv && (
+                                <a
+                                    href={`/storage/${user.cv}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center px-4 py-2 bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm font-medium rounded-lg hover:bg-indigo-100 transition-colors"
+                                >
+                                    <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Scarica CV
+                                </a>
+                            )}
+                            
+                            {isMyProfile && (
+                                <>
+                                    <button
+                                        onClick={() => cvInputRef.current?.click()}
+                                        disabled={uploadingCv}
+                                        className="inline-flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                                    >
+                                        <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                        </svg>
+                                        {uploadingCv ? "Caricamento..." : (user.cv ? "Aggiorna CV" : "Carica CV")}
+                                    </button>
+                                    <input
+                                        type="file"
+                                        ref={cvInputRef}
+                                        className="hidden"
+                                        accept=".pdf,.doc,.docx"
+                                        onChange={handleCvChange}
+                                    />
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

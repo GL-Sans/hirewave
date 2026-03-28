@@ -41,4 +41,29 @@ class ProfileController extends Controller
             'user' => $user
         ]);
     }
+
+    public function uploadCv(Request $request)
+    {
+        $request->validate([
+            'cv' => 'required|file|mimes:pdf,doc,docx|max:10240', // 10MB max
+        ]);
+
+        $user = Auth::user();
+
+        if ($request->hasFile('cv')) {
+            $path = $request->file('cv')->store('cvs', 'public');
+            
+            // if ($user->cv) {
+            //     Storage::disk('public')->delete($user->cv);
+            // }
+
+            $user->cv = $path;
+            $user->save();
+        }
+
+        return response()->json([
+            'message' => 'CV uploaded successfully',
+            'user' => $user
+        ]);
+    }
 }
