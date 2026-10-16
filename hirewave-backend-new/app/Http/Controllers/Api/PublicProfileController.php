@@ -15,13 +15,28 @@ class PublicProfileController extends Controller
     {
         $viewer = Auth::user();
 
-        [$firstName, $lastName] = explode('-', $name, 2);
-
-        $worker = User::with(['posts' => function ($q) {
+        $query = User::with(['posts' => function ($q) {
             $q->latest();
-        }])->where('first_name', ucfirst($firstName))
-        ->where('last_name', ucfirst($lastName))
-        ->firstOrFail();
+        }]);
+
+        if (ctype_digit((string) $name)) {
+            // Accesso per id (profili con cognome nascosto)
+            $worker = $query->where('id', (int) $name)->firstOrFail();
+        } else {
+            // Accesso per slug first_name-last_name
+            $parts = explode('-', $name, 2);
+
+            if (count($parts) < 2) {
+                abort(404);
+            }
+
+            [$firstName, $lastName] = $parts;
+
+            $worker = $query
+                ->where('first_name', ucfirst($firstName))
+                ->where('last_name', ucfirst($lastName))
+                ->firstOrFail();
+        }
 
         $isOwnProfile = $viewer->id === $worker->id;
         $isCompanyViewer = $viewer->role === 'COMPANY';

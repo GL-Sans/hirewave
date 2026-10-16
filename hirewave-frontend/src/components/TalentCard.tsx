@@ -10,7 +10,7 @@ import { useAuth } from "../context/AuthContext";
 type TalentCardProps = {
     id: number;
     firstName: string;
-    lastName: string;
+    lastName?: string | null;
     role: string;
     imageUrl?: string;
     skills?: string[];
@@ -30,6 +30,11 @@ export default function TalentCard(props: TalentCardProps) {
     const { user } = useAuth();
     const isCompany = user?.role === "COMPANY";
     const [loading, setLoading] = useState(false);
+
+    // Se il cognome è nascosto (profilo non sbloccato) uso l'id
+    const profilePath = lastName
+        ? `/profile/${firstName.toLowerCase()}-${lastName.toLowerCase()}`
+        : `/profile/${id}`;
 
     const handleUnlock = async (e: React.MouseEvent) => {
         e.preventDefault();
@@ -52,7 +57,7 @@ export default function TalentCard(props: TalentCardProps) {
 
     return (
         <Link
-            to={`/profile/${firstName.toLowerCase()}-${lastName.toLowerCase()}`}
+            to={profilePath}
             className="block relative rounded-[20px] group aspect-square border border-slate-200 shadow-md overflow-hidden"
         >
             {imageUrl ? (

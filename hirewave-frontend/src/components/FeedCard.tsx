@@ -18,7 +18,7 @@ type FeedCardProps = {
     author: {
         id: number;
         first_name: string;
-        last_name: string;
+        last_name?: string | null;
         role: "WORKER" | "PRO" | "COMPANY";
         profile_image?: string | null;
     };
@@ -44,7 +44,6 @@ export default function FeedCard(props: FeedCardProps) {
 
     const isCompanyViewer = user?.role === "COMPANY";
     const isProViewer = user?.role === "PRO";
-    const isWorkerViewer = user?.role === "WORKER";
 
     const isCompanyAuthor = author.role === "COMPANY";
     const isProAuthor = author.role === "PRO";
@@ -60,10 +59,13 @@ export default function FeedCard(props: FeedCardProps) {
     const hideProToPro =
         isProViewer && isProAuthor && type === "service";
 
-    // ❌ WORKER non ha vincoli particolari (per ora)
-
     const hideCTA =
         isOwnPost || hideCompanyToCompany || hideProToPro;
+
+    // Se il cognome è nascosto uso l'id per il link al profilo
+    const authorPath = author.last_name
+        ? `/profile/${author.first_name.toLowerCase()}-${author.last_name.toLowerCase()}`
+        : `/profile/${author.id}`;
 
     return (
         <article className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col h-full">
@@ -111,7 +113,7 @@ export default function FeedCard(props: FeedCardProps) {
 
                     {/* Autore */}
                     <Link
-                        to={`/profile/${author.first_name.toLowerCase()}-${author.last_name.toLowerCase()}`}
+                        to={authorPath}
                         className="flex items-center gap-2 mt-1 group"
                     >
                         <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
@@ -127,7 +129,7 @@ export default function FeedCard(props: FeedCardProps) {
                         </div>
 
                         <span className="text-sm text-slate-900 font-medium group-hover:text-blue-600 transition-colors truncate">
-                            {author.first_name} {author.last_name}
+                            {author.first_name} {author.last_name ?? ""}
                         </span>
                     </Link>
 
