@@ -7,6 +7,10 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Api\PublicProfileController;
 use App\Http\Controllers\Api\PostController;
+use App\Http\Controllers\Api\StripeController;
+
+// Webhook Stripe — FUORI da auth, Stripe non manda cookie
+Route::post('/stripe/webhook', [StripeController::class, 'webhook']);
 
 Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
@@ -24,5 +28,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/talents', [UserController::class, 'talents']);
     Route::get('/companies', [UserController::class, 'companies']);
     Route::get('/profiles/{id}', [PublicProfileController::class, 'show']);
+    Route::get('/profiles/{id}/posts', [PublicProfileController::class, 'posts']);
     Route::post('/posts', [PostController::class, 'store']);
+    Route::post('/onboarding', [App\Http\Controllers\Api\OnboardingController::class, 'submit']);
+    Route::post('/stripe/checkout', [StripeController::class, 'createCheckout']);
+    Route::get('/profiles/{id}/reviews', [App\Http\Controllers\Api\ReviewController::class, 'index']);
+    Route::post('/profiles/{id}/reviews', [App\Http\Controllers\Api\ReviewController::class, 'store']);
 });

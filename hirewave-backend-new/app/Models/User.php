@@ -31,6 +31,15 @@ class User extends Authenticatable
         'profile_image',
         'cv',
         'description',
+        'settore',
+        'ral_aspettativa',
+        'livello_istruzione',
+        'anni_esperienza',
+        'certificazioni',
+        'rating_tecnico',
+        'rating_reputazionale',
+        'badge',
+        'onboarding_completato',
     ];
 
     /**
@@ -53,6 +62,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'rating_reputazionale' => 'float',
         ];
     }
 }

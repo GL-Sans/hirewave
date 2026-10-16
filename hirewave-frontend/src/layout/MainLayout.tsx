@@ -29,7 +29,7 @@ export default function MainLayout() {
         onClose={() => setMenuOpen(false)}
       /> */}
 
-      <main className="pt-20 pb-24 md:pb-8 max-w-5xl mx-auto px-4">
+      <main className="pt-20 pb-24 md:pb-8 max-w-5xl mx-auto px-4 overflow-hidden">
         <Outlet />
       </main>
       {/* <Footer /> */}

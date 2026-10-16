@@ -32,12 +32,11 @@ export default function ProfilePage() {
                     const res = await axiosClient.get("/api/me");
                     setUser(res.data.user);
 
-                    const feed = await axiosClient.get("/api/feed");
-                    setPosts(
-                        feed.data.filter(
-                            (p: any) => p.user.id === res.data.user.id,
-                        ),
+                    const postsRes = await axiosClient.get(
+                        `/api/profiles/${id ?? res.data.user.id}/posts`
                     );
+
+                    setPosts(postsRes.data);
                 }
             } catch (err) {
                 console.error("Errore caricamento profilo:", err);
@@ -180,6 +179,15 @@ export default function ProfilePage() {
                             ) : (
                                 <UserIcon className="w-16 h-16 text-gray-300" />
                             )}
+                            {user.rating_reputazionale > 0 && (
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 py-1 flex justify-center gap-0.5">
+                                    {[1,2,3,4,5].map(s => (
+                                        <svg key={s} className={`w-3 h-3 ${s <= Math.round(user.rating_reputazionale) ? "text-yellow-400" : "text-gray-400"}`} fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                                        </svg>
+                                    ))}
+                                </div>
+                            )}
                             {isMyProfile && (
                                 <div
                                     className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
@@ -225,9 +233,66 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="text-center md:text-left flex-1 pb-2">
+                        <div className="flex flex-col items-center md:items-start gap-2">
                         <h1 className="text-2xl font-bold text-gray-900">
-                            {user.first_name} {user.last_name}
+                            {user.first_name}{user.last_name ? ` ${user.last_name}` : ""}
                         </h1>
+                        {user.badge && user.badge !== "none" && (
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide ${
+                                user.badge === "verde"
+                                    ? "bg-green-100 text-green-700 border border-green-200"
+                                    : "bg-gray-100 text-gray-600 border border-gray-200"
+                            }`}>
+                                <span className={`w-2 h-2 rounded-full ${user.badge === "verde" ? "bg-green-500" : "bg-gray-400"}`}></span>
+                                {user.badge === "verde" ? "Certificato" : "Dichiarato"}
+                            </span>
+                        )}
+                        {user.rating_tecnico > 0 && (
+                            <div className="mt-3 border border-slate-200 rounded-xl p-4 max-w-sm">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-semibold text-slate-700">Rating Tecnico</span>
+                                <span className="text-lg font-bold text-slate-900">{user.rating_tecnico}<span className="text-sm text-slate-400 font-normal">/100</span></span>
+                            </div>
+                            <div className="w-full bg-slate-100 rounded-full h-1.5 mb-3">
+                                <div
+                                    className="bg-slate-800 h-1.5 rounded-full transition-all"
+                                    style={{ width: `${user.rating_tecnico}%` }}
+                                ></div>
+                            </div>
+                            <div className="space-y-1.5 text-xs text-slate-500">
+                                {user.livello_istruzione && (
+                                    <div className="flex justify-between">
+                                        <span>Istruzione</span>
+                                        <span className="font-medium text-slate-700 capitalize">{user.livello_istruzione.replace("_", " ")}</span>
+                                    </div>
+                                )}
+                                {user.anni_esperienza !== null && (
+                                    <div className="flex justify-between">
+                                        <span>Esperienza</span>
+                                        <span className="font-medium text-slate-700">{user.anni_esperienza} anni</span>
+                                    </div>
+                                )}
+                                {user.settore && (
+                                    <div className="flex justify-between">
+                                        <span>Settore</span>
+                                        <span className="font-medium text-slate-700">{user.settore}</span>
+                                    </div>
+                                )}
+                                {user.certificazioni && (
+                                    <div className="flex justify-between">
+                                        <span>Certificazioni</span>
+                                        <span className="font-medium text-slate-700">{user.certificazioni}</span>
+                                    </div>
+                                )}
+                            </div>
+                            {isMyProfile && (
+                                <p className="text-[10px] text-slate-400 mt-3">
+                                    Aggiungi certificazioni o esperienza per aumentare il rating.
+                                </p>
+                            )}
+                        </div>
+                        )}
+                    </div>
 
                         {/* Description Section */}
                         {isEditingDescription ? (

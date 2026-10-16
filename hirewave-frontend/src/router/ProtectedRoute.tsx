@@ -1,29 +1,30 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-
 
 export default function ProtectedRoute() {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
-  // Finché non abbiamo finito di caricare lo stato utente, NON redirectiamo
   if (loading) {
     return null;
   }
 
-  // Se non c'è utente loggato → mandiamo alla login con messaggio di errore
   if (!user) {
     return (
       <Navigate
         to="/"
         replace
         state={{
-          error: "Devi effettuare l’accesso per visualizzare questa pagina",
+          error: "Devi effettuare l'accesso per visualizzare questa pagina",
           from: location.pathname,
         }}
       />
     );
   }
 
-  // Utente loggato → accesso consentito
+  if (!user.onboarding_completato && location.pathname !== "/onboarding") {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   return <Outlet />;
 }

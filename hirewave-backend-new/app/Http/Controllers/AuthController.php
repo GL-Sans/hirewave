@@ -16,7 +16,7 @@ class AuthController extends Controller
             'last_name' => 'required|string',
             'email' => 'required|string|unique:users,email',
             'password' => 'required|string|min:6|confirmed', // << OBBLIGATORIO
-            'role' => 'required|in:worker,pro,company'
+            'role' => 'required|in:WORKER,PRO,COMPANY'
         ]);
 
         $user = User::create([
@@ -24,7 +24,7 @@ class AuthController extends Controller
             'last_name' => $fields['last_name'],
             'email' => $fields['email'],
             'password' => Hash::make($fields['password']),
-            'role' => $fields['role']
+            'role' => strtoupper($fields['role'])
         ]);
 
         // LOGIN AUTOMATICO DOPO REGISTRAZIONE

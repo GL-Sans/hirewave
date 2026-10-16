@@ -6,8 +6,9 @@ interface User {
     first_name: string;
     last_name: string;
     email: string;
-    role: "worker" | "pro" | "company";
+    role: "WORKER" | "PRO" | "COMPANY";
     profile_image?: string;
+    onboarding_completato?: boolean;
 }
 
 interface RegisterData {
@@ -16,7 +17,7 @@ interface RegisterData {
     email: string;
     password: string;
     password_confirmation: string;
-    role: "worker" | "pro" | "company";
+    role: "WORKER" | "PRO" | "COMPANY";
 }
 
 interface AuthContextType {
