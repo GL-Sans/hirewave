@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import axiosClient from "../api/axiosClient";
 import SearchBar from "../components/SearchBar";
 import TalentCard from "../components/TalentCard";
@@ -9,67 +9,114 @@ type Talent = {
     last_name: string;
     role: string;
     profile_image?: string | null;
+    badge?: string;
+    unlocked?: boolean;
+    settore?: string;
+    rating_tecnico?: number;
 };
 
-const MOCK_IMAGES = [
-    "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=800",
-    "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=800",
-    "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=800",
-    "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=800",
-    "https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=800",
-    "https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=800",
-];
-
 const MOCK_SKILLS = [
-    ["PROJECT MANAGEMENT", "LEAN MANUFACTURING"],
-    ["SEO", "DIGITAL STRATEGY", "BRANDING"],
-    ["REACT", "TYPESCRIPT", "TAILWIND"],
-    ["UI/UX", "FIGMA", "DESIGN SYSTEMS"],
-    ["SALES", "B2B", "ACCOUNT MANAGEMENT"],
+    ["PROJECT MANAGEMENT", "LEAN"],
+    ["SEO", "DIGITAL STRATEGY"],
+    ["REACT", "TYPESCRIPT"],
+    ["UI/UX", "FIGMA"],
+    ["SALES", "B2B"],
 ];
 
-function getImage(id: number) {
-    return MOCK_IMAGES[id % MOCK_IMAGES.length];
-}
+const RUOLI = ["Tutti", "WORKER", "PRO"];
+const SETTORI = ["Tutti i settori", "Ristorazione / HoReCa", "Turismo / Hospitality", "Eventi", "Logistica", "IT / Digitale"];
 
-function getSkills(id: number) {
-    return MOCK_SKILLS[id % MOCK_SKILLS.length];
+function getSkills(id: number) { return MOCK_SKILLS[id % MOCK_SKILLS.length]; }
+
+function SkeletonCard() {
+    return (
+        <div className="rounded-[20px] overflow-hidden aspect-square bg-slate-200 animate-pulse" />
+    );
 }
 
 export default function TalentsPage() {
     const [talents, setTalents] = useState<Talent[]>([]);
     const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState("");
+    const [filtroRuolo, setFiltroRuolo] = useState("Tutti");
+    const [filtroSettore, setFiltroSettore] = useState("Tutti i settori");
 
     useEffect(() => {
-        axiosClient
-            .get("/api/talents")
-            .then((res) => setTalents(res.data))
+        axiosClient.get("/api/talents")
+            .then((res) => setTalents(res.data ?? []))
             .finally(() => setLoading(false));
     }, []);
 
-    if (loading)
-        return <p className="text-slate-500">Caricamento talenti...</p>;
+    const talentiFiltrati = useMemo(() => {
+        const q = search.toLowerCase();
+        return talents.filter(t => {
+            const matchSearch = !q ||
+                (t.first_name ?? "").toLowerCase().includes(q) ||
+                (t.last_name ?? "").toLowerCase().includes(q) ||
+                t.settore?.toLowerCase().includes(q);
+            const matchRuolo = filtroRuolo === "Tutti" || t.role === filtroRuolo;
+            const matchSettore = filtroSettore === "Tutti i settori" || t.settore === filtroSettore;
+            return matchSearch && matchRuolo && matchSettore;
+        });
+    }, [talents, search, filtroRuolo, filtroSettore]);
 
     return (
         <div className="flex flex-col space-y-4 pb-6">
-            <SearchBar placeholder="Cerca talenti..." />
+            <SearchBar placeholder="Cerca talenti..." onSearch={setSearch} />
+
+            {/* Filtro ruolo */}
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                {RUOLI.map(r => (
+                    <button
+                        key={r}
+                        onClick={() => setFiltroRuolo(r)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+                            filtroRuolo === r
+                                ? "bg-slate-900 text-white"
+                                : "border border-slate-300 text-slate-700 hover:bg-slate-50"
+                        }`}
+                    >
+                        {r === "WORKER" ? "Lavoratori" : r === "PRO" ? "Professionisti" : r}
+                    </button>
+                ))}
+            </div>
+
+            {/* Filtro settore */}
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                {SETTORI.map(s => (
+                    <button
+                        key={s}
+                        onClick={() => setFiltroSettore(s)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+                            filtroSettore === s
+                                ? "bg-blue-600 text-white"
+                                : "border border-slate-200 text-slate-600 hover:bg-slate-50"
+                        }`}
+                    >
+                        {s}
+                    </button>
+                ))}
+            </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                {talents.map((talent) => (
-                    <TalentCard
-                        key={talent.id}
-                        id={talent.id}
-                        firstName={talent.first_name}
-                        lastName={talent.last_name}
-                        role={talent.role}
-                        imageUrl={
-                            talent.profile_image
-                                ? `/storage/${talent.profile_image}`
-                                : getImage(talent.id)
-                        }
-                        skills={getSkills(talent.id)}
-                    />
-                ))}
+                {loading
+                    ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
+                    : talentiFiltrati.length === 0
+                        ? <p className="col-span-2 text-slate-400 text-sm text-center py-8">Nessun talento trovato.</p>
+                        : talentiFiltrati.map((talent) => (
+                            <TalentCard
+                                key={talent.id}
+                                id={talent.id}
+                                firstName={talent.first_name}
+                                lastName={talent.last_name}
+                                role={talent.role}
+                                imageUrl={talent.unlocked && talent.profile_image ? `/storage/${talent.profile_image}` : undefined}
+                                skills={getSkills(talent.id)}
+                                badge={talent.badge}
+                                unlocked={talent.unlocked}
+                            />
+                        ))
+                }
             </div>
         </div>
     );

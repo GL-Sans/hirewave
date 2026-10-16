@@ -18,6 +18,8 @@ import ChatPage from "./pages/Chat";
 import SettingsPage from "./pages/Settings";
 import CurriculumPage from "./pages/Curriculum";
 
+import OnboardingPage from "./pages/Onboarding";
+
 function App() {
     return (
         <AuthProvider>
@@ -37,6 +39,7 @@ function App() {
                     {/* ROTTE PROTETTE (solo se loggato) */}
                     <Route element={<ProtectedRoute />}>
                         <Route element={<MainLayout />}>
+                            <Route path="/onboarding" element={<OnboardingPage />} />
                             <Route path="/feed" element={<FeedPage />} />
                             <Route path="/talents" element={<TalentsPage />} />
                             <Route

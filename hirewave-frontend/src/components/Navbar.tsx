@@ -39,7 +39,7 @@ export default function Navbar() {
     }, []);
 
     return (
-        <header className="fixed left-0 w-full z-50 bg-white shadow-sm bottom-0 md:top-0 md:bottom-auto">
+        <header className="fixed top-0 left-0 w-full z-50 bg-white shadow-sm">
             <div className="max-w-5xl mx-auto px-4 py-2 md:py-3">
                 <div className="flex items-center justify-between md:gap-6">
                     {/* Hamburger mobiles
@@ -52,7 +52,7 @@ export default function Navbar() {
 
                     {/* LOGO  */}
                     <Link to="/feed">
-                        <div className="hidden md:flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                             <div
                                 className="w-10 h-10 rounded-xl bg-center bg-no-repeat bg-cover"
                                 style={{
@@ -63,7 +63,7 @@ export default function Navbar() {
                     </Link>
 
                     {/* NAV */}
-                    <nav className="flex flex-1 items-center justify-around md:justify-center md:gap-2">
+                    <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 py-2 md:py-0 md:border-t-0 md:static flex flex-1 items-center justify-around md:justify-center md:gap-2 z-50">
                         {/* FEED */}
                         <Link
                             to="/feed"
@@ -113,11 +113,11 @@ export default function Navbar() {
                         </Link>
                     </nav>
 
-                    {/* UTENTE (solo desktop) */}
+                    {/* UTENTE */}
                     <div className="relative" ref={menuRef}>
                         <div
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
-                            className="hidden md:flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 pr-2 rounded-full transition-colors border border-transparent hover:border-slate-200"
+                            className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 md:pr-2 rounded-full transition-colors border border-transparent hover:border-slate-200"
                         >
                             <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
                                 {user?.profile_image ? (

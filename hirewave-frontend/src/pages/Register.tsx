@@ -8,7 +8,7 @@ export default function RegisterPage() {
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
-    const [role, setRole] = useState<"worker" | "pro" | "company">("worker");
+    const [role, setRole] = useState<"WORKER" | "PRO" | "COMPANY">("WORKER");
     const [password, setPassword] = useState("");
     const [passwordConfirmation, setPasswordConfirmation] = useState("");
     const [error, setError] = useState<string | null>(null);
@@ -100,11 +100,9 @@ export default function RegisterPage() {
                             value={role}
                             onChange={(e) => setRole(e.target.value as any)}
                         >
-                            <option value="worker">Lavoratore</option>
-                            <option value="pro">
-                                Freelancer / Professionista
-                            </option>
-                            <option value="company">Azienda</option>
+                            <option value="WORKER">Lavoratore</option>
+                            <option value="PRO">Freelancer / Professionista</option>
+                            <option value="COMPANY">Azienda</option>
                         </select>
                     </div>
 

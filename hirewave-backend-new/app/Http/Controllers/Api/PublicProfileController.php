@@ -4,41 +4,111 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use App\Models\Post;
+use App\Models\Review;
 
 class PublicProfileController extends Controller
 {
     public function show($name)
     {
+        $viewer = Auth::user();
+
         [$firstName, $lastName] = explode('-', $name, 2);
 
-        $user = User::with(['posts.user' => function ($q) {
-            $q->select('id', 'first_name', 'last_name', 'role', 'profile_image');
-        }, 'posts' => function ($q) {
+        $worker = User::with(['posts' => function ($q) {
             $q->latest();
         }])->where('first_name', ucfirst($firstName))
         ->where('last_name', ucfirst($lastName))
         ->firstOrFail();
 
+        $isOwnProfile = $viewer->id === $worker->id;
+        $isCompanyViewer = $viewer->role === 'COMPANY';
+
+        $unlocked = false;
+
+        if ($isCompanyViewer) {
+            $unlocked = DB::table('unlocked_profiles')
+                ->where('company_id', $viewer->id)
+                ->where('worker_id', $worker->id)
+                ->exists();
+        }
+
+        $canSeeFullName =
+            $isOwnProfile ||
+            ($isCompanyViewer && $unlocked) ||
+            $worker->role === 'COMPANY';
+
+        $canSeeImage =
+            $isOwnProfile ||
+            ($isCompanyViewer && $unlocked) ||
+            $worker->role === 'COMPANY';
+
+        // REVIEWS + MEDIA
+        $reviews = Review::where('worker_id', $worker->id)
+            ->with('reviewer:id,first_name')
+            ->latest()
+            ->get();
+
+        $average = round($reviews->avg('stars') ?? 0, 1);
+
         return response()->json([
             'user' => [
-                'id' => $user->id,
-                'first_name' => $user->first_name,
-                'last_name' => $user->last_name,
-                'role' => $user->role,
-                'profile_image' => $user->profile_image,
-                'curriculum_public' => $user->curriculum_public,
+                'id' => $worker->id,
+                'first_name' => $worker->first_name,
+                'last_name' => $canSeeFullName ? $worker->last_name : null,
+                'role' => $worker->role,
+                'profile_image' => $canSeeImage ? $worker->profile_image : null,
+
+                'description' => $worker->description,
+                'badge' => $worker->badge,
+
+                'rating_tecnico' => $worker->rating_tecnico ?? 0,
+                'rating_reputazionale' => $worker->rating_reputazionale ?? 0,
+
+                'settore' => $worker->settore,
+                'cv' => $isOwnProfile ? $worker->cv : null,
+
+                'unlocked' => $unlocked,
+
+                'rating_reputazionale_avg' => $average,
+                'rating_reputazionale_count' => $reviews->count(),
+
+                'curriculum_public' => $worker->curriculum_public,
                 // questi solo se curriculum è pubblico
-                'bio' => $user->curriculum_public ? $user->bio : null,
-                'city' => $user->curriculum_public ? $user->city : null,
-                'country' => $user->curriculum_public ? $user->country : null,
-                'website' => $user->curriculum_public ? $user->website : null,
-                'years_experience' => $user->curriculum_public ? $user->years_experience : null,
-                'contract_type' => $user->curriculum_public ? $user->contract_type : null,
-                'available' => $user->curriculum_public ? $user->available : null,
-                'skills' => $user->curriculum_public ? $user->skills : null,
-                'languages' => $user->curriculum_public ? $user->languages : null,
+                'bio' => $worker->curriculum_public ? $worker->bio : null,
+                'city' => $worker->curriculum_public ? $worker->city : null,
+                'country' => $worker->curriculum_public ? $worker->country : null,
+                'website' => $worker->curriculum_public ? $worker->website : null,
+                'years_experience' => $worker->curriculum_public ? $worker->years_experience : null,
+                'contract_type' => $worker->curriculum_public ? $worker->contract_type : null,
+                'available' => $worker->curriculum_public ? $worker->available : null,
+                'skills' => $worker->curriculum_public ? $worker->skills : null,
+                'languages' => $worker->curriculum_public ? $worker->languages : null,
             ],
-            'posts' => $user->posts,
+
+            'reviews' => $reviews,
+
+            'posts' => $worker->posts->map(function ($post) use ($worker, $canSeeFullName, $canSeeImage) {
+                return array_merge($post->toArray(), [
+                    'user' => [
+                        'id' => $worker->id,
+                        'first_name' => $worker->first_name,
+                        'last_name' => $canSeeFullName ? $worker->last_name : null,
+                        'role' => $worker->role,
+                        'profile_image' => $canSeeImage ? $worker->profile_image : null,
+                    ]
+                ]);
+            }),
         ]);
+    }
+
+    public function posts($id)
+    {
+        return Post::with('user:id,first_name,last_name,role,profile_image,badge')
+            ->where('user_id', $id)
+            ->latest()
+            ->get();
     }
 }

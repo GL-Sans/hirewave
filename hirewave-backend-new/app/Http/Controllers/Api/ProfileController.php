@@ -41,4 +41,57 @@ class ProfileController extends Controller
             'user' => $user
         ]);
     }
+
+    public function uploadCv(Request $request)
+    {
+        $request->validate([
+            'cv' => 'required|file|mimes:pdf,doc,docx|max:10240', // 10MB max
+        ]);
+
+        $user = Auth::user();
+
+        if ($request->hasFile('cv')) {
+            // Store on local disk (not public) to prevent direct URL access
+            $path = $request->file('cv')->store('cvs', 'local');
+            
+            // if ($user->cv) {
+            //     Storage::disk('local')->delete($user->cv);
+            // }
+
+            $user->cv = $path;
+            $user->save();
+        }
+
+        return response()->json([
+            'message' => 'CV uploaded successfully',
+            'user' => $user
+        ]);
+    }
+
+    public function downloadCv()
+    {
+        $user = Auth::user();
+        
+        if (!$user->cv || !Storage::disk('local')->exists($user->cv)) {
+            return response()->json(['message' => 'CV non trovato'], 404);
+        }
+
+        return Storage::disk('local')->download($user->cv);
+    }
+
+    public function updateDescription(Request $request)
+    {
+        $request->validate([
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        $user = Auth::user();
+        $user->description = $request->description;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Description updated successfully',
+            'user' => $user
+        ]);
+    }
 }
