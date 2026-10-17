@@ -195,7 +195,7 @@ export default function CurriculumPage() {
                             checked={form.curriculum_public}
                             onChange={(e) => setForm({ ...form, curriculum_public: e.target.checked })}
                         />
-                        <label className="text-sm text-slate-500">Rendi il curriculum pubblico</label>
+                        <label className="text-sm text-slate-500">Rendi il curriculum pubblico (mostra anche la tua email)</label>
                     </div>
 
                     <button
@@ -214,6 +214,12 @@ export default function CurriculumPage() {
                     <span className="text-slate-500 text-sm">Nome:</span>
                     <span className="text-sm">{profileUser.first_name} {profileUser.last_name}</span>
                 </div>
+                {profileUser.email && profileUser.curriculum_public && (
+                    <div className="flex gap-2">
+                        <span className="text-slate-500 text-sm">Email:</span>
+                        <a href={`mailto:${profileUser.email}`} className="text-sm text-blue-600">{profileUser.email}</a>
+                    </div>
+                )}
                 {profileUser.bio && (
                     <div className="flex gap-2">
                         <span className="text-slate-500 text-sm">Bio:</span>

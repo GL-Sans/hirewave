@@ -92,6 +92,7 @@ class PublicProfileController extends Controller
 
                 'curriculum_public' => $worker->curriculum_public,
                 // questi solo se curriculum è pubblico
+                'email' => $worker->curriculum_public ? $worker->email : null,
                 'bio' => $worker->curriculum_public ? $worker->bio : null,
                 'city' => $worker->curriculum_public ? $worker->city : null,
                 'country' => $worker->curriculum_public ? $worker->country : null,

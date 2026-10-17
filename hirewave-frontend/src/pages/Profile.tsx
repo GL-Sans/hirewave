@@ -264,14 +264,12 @@ export default function ProfilePage() {
                             <p className="text-sm text-slate-500 capitalize">
                                 {user.role}
                             </p>
-                            {userSlug && (
-                                <Link
-                                    to={`/profile/${userSlug}/curriculum`}
-                                    className="text-sm text-blue-600 font-medium hover:underline"
-                                >
-                                    Curriculum
-                                </Link>
-                            )}
+                            <Link
+                                to={`/profile/${userSlug ?? user.id}/curriculum`}
+                                className="text-sm text-blue-600 font-medium hover:underline"
+                            >
+                                Curriculum
+                            </Link>
                             {user.badge && user.badge !== "none" && (
                                 <span
                                     className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide ${
