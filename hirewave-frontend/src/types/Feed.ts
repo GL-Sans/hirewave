@@ -2,7 +2,7 @@ export type FeedUser = {
     id: number;
     first_name: string;
     last_name: string;
-    role: "worker" | "pro" | "company";
+    role: "WORKER" | "PRO" | "COMPANY";
     profile_image?: string | null;
 };
 

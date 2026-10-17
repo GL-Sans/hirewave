@@ -13,7 +13,7 @@ type CompanyCardProps = {
 };
 
 export default function CompanyCard(props: CompanyCardProps) {
-    const { id, firstName, lastName, imageUrl } = props;
+    const { firstName, lastName, imageUrl } = props;
     const navigate = useNavigate();
 
     return (
