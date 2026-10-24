@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\PublicProfileController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\CurriculumController;
 use App\Http\Controllers\Api\StripeController;
+use App\Http\Controllers\Api\SocialAuthController;
 
 // Webhook Stripe — FUORI da auth, Stripe non manda cookie
 Route::post('/stripe/webhook', [StripeController::class, 'webhook']);
@@ -17,6 +18,15 @@ Route::post('/stripe/webhook', [StripeController::class, 'webhook']);
 Route::middleware(['web', 'guest', 'throttle:10,1'])->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register']);
+});
+
+// Login e registrazione social (Google, LinkedIn)
+Route::middleware(['web', 'throttle:20,1'])->group(function () {
+    Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])
+        ->where('provider', 'google|linkedin');
+    Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])
+        ->where('provider', 'google|linkedin');
+    Route::post('/auth/social/complete', [SocialAuthController::class, 'complete']);
 });
 
 // Rotte protette con rate limiting normale

@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
+import SocialLoginButtons from "../components/SocialLoginButtons";
 
 export default function RegisterPage() {
     const { register, loading } = useAuth();
@@ -144,7 +145,9 @@ export default function RegisterPage() {
                         {loading ? "Registrazione in corso..." : "Registrati"}
                     </button>
                 </form>
-
+                  <div className="mt-4">
+                    <SocialLoginButtons />
+                </div>
                 <p className="mt-4 text-center text-sm text-slate-600">
                     Hai già un account?{" "}
                     <Link to="/login" className="text-blue-600 font-semibold">

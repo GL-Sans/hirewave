@@ -125,7 +125,7 @@ export default function TalentCard(props: TalentCardProps) {
                     </div>
                     {isCompany && (
                         <button
-                            className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white shadow-xl transition transform hover:scale-105 active:scale-95 disabled:opacity-50 ${
+                            className={`w-10! h-10! p-0! shrink-0 rounded-full flex items-center justify-center text-white shadow-xl transition transform hover:scale-105 active:scale-95 disabled:opacity-50 ${
                                 unlocked ? "bg-green-500 hover:bg-green-400" : "bg-blue-600 hover:bg-blue-500"
                             }`}
                             onClick={unlocked ? (e) => e.preventDefault() : handleUnlock}

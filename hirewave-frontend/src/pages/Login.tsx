@@ -1,7 +1,14 @@
 import { type FormEvent, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
-import { useLocation } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
+import SocialLoginButtons from "../components/SocialLoginButtons";
+
+const SOCIAL_ERRORS: Record<string, string> = {
+  social: "Accesso con Google o LinkedIn non riuscito. Riprova.",
+  social_email:
+    "Il provider non ha fornito un'email verificata. Usa un altro metodo di accesso.",
+};
 
 export default function LoginPage() {
   const { login, loading } = useAuth();
@@ -9,7 +16,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const errorState = location.state?.error;
+  const socialError = SOCIAL_ERRORS[searchParams.get("error") ?? ""];
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -25,6 +34,12 @@ export default function LoginPage() {
     <div className="text-black h-dvh overflow-hidden flex items-center justify-center bg-slate-50">
       <div className="w-full max-w-md bg-white shadow-lg rounded-2xl p-8">
         <h1 className="text-2xl font-bold mb-6 text-center">Accedi a HireWave</h1>
+
+        {socialError && (
+          <div className="mb-4 text-sm text-red-600 border border-red-200 rounded-lg px-3 py-2">
+            {socialError}
+          </div>
+        )}
 
         {error && (
           <div className="mb-4 text-sm text-red-600 border border-red-200 rounded-lg px-3 py-2">
@@ -63,6 +78,10 @@ export default function LoginPage() {
             {loading ? "Accesso in corso..." : "Accedi"}
           </button>
         </form>
+
+        <div className="mt-4">
+          <SocialLoginButtons />
+        </div>
 
         <p className="mt-4 text-center text-sm text-slate-600">
           Non hai un account?{" "}

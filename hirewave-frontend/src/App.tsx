@@ -6,6 +6,7 @@ import ProtectedRoute from "./router/ProtectedRoute";
 
 import LoginPage from "./pages/Login";
 import RegisterPage from "./pages/Register";
+import SocialRolePage from "./pages/SocialRole";
 import FeedPage from "./pages/Feed";
 import TalentsPage from "./pages/Talents";
 import CompaniesPage from "./pages/Companies";
@@ -33,6 +34,10 @@ function App() {
                             <Route
                                 path="/register"
                                 element={<RegisterPage />}
+                            />
+                            <Route
+                                path="/auth/social/role"
+                                element={<SocialRolePage />}
                             />
                         </Route>
                     </Route>
