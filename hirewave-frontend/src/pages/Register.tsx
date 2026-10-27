@@ -2,6 +2,7 @@ import { type FormEvent, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 import SocialLoginButtons from "../components/SocialLoginButtons";
+import HoneypotField from "../components/HoneypotField";
 
 export default function RegisterPage() {
     const { register, loading } = useAuth();
@@ -12,6 +13,7 @@ export default function RegisterPage() {
     const [role, setRole] = useState<"WORKER" | "PRO" | "COMPANY">("WORKER");
     const [password, setPassword] = useState("");
     const [passwordConfirmation, setPasswordConfirmation] = useState("");
+    const [honeypot, setHoneypot] = useState("");
     const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = async (e: FormEvent) => {
@@ -31,10 +33,19 @@ export default function RegisterPage() {
                 role,
                 password,
                 password_confirmation: passwordConfirmation,
+                company_website: honeypot,
             });
             // dopo register l'AuthContext fa già fetchUser → ProtectedRoute ti porta al /feed
         } catch (err: any) {
-            setError("Errore durante la registrazione.");
+            // Mostra il primo errore di validazione del server (es. regole della password)
+            const errors = err?.response?.data?.errors;
+            setError(
+                errors
+                    ? (Object.values(errors)[0] as string[])[0]
+                    : err?.response?.status === 429
+                        ? "Troppi tentativi. Riprova tra qualche minuto."
+                        : "Errore durante la registrazione.",
+            );
         }
     };
 
@@ -117,8 +128,13 @@ export default function RegisterPage() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            minLength={6}
+                            minLength={8}
+                            maxLength={128}
+                            autoComplete="new-password"
                         />
+                        <p className="text-xs text-slate-500 mt-1">
+                            Almeno 8 caratteri, con lettere e numeri.
+                        </p>
                     </div>
 
                     <div>
@@ -133,9 +149,13 @@ export default function RegisterPage() {
                                 setPasswordConfirmation(e.target.value)
                             }
                             required
-                            minLength={6}
+                            minLength={8}
+                            maxLength={128}
+                            autoComplete="new-password"
                         />
                     </div>
+
+                    <HoneypotField value={honeypot} onChange={setHoneypot} />
 
                     <button
                         type="submit"

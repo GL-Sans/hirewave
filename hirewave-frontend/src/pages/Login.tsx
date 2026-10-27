@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 import { useLocation, useSearchParams } from "react-router-dom";
 import SocialLoginButtons from "../components/SocialLoginButtons";
+import HoneypotField from "../components/HoneypotField";
 
 const SOCIAL_ERRORS: Record<string, string> = {
   social: "Accesso con Google o LinkedIn non riuscito. Riprova.",
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const { login, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [honeypot, setHoneypot] = useState("");
   const [error, setError] = useState<string | null>(null);
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -24,9 +26,14 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     try {
-      await login(email, password);
+      await login(email, password, honeypot);
     } catch (err: any) {
-      setError("Credenziali errate o problema di connessione.");
+      // 429: troppi tentativi (account o IP temporaneamente bloccati)
+      setError(
+        err?.response?.status === 429
+          ? err?.response?.data?.message ?? "Troppi tentativi. Riprova tra qualche minuto."
+          : "Credenziali errate o problema di connessione.",
+      );
     }
   };
 
@@ -69,6 +76,8 @@ export default function LoginPage() {
               required
             />
           </div>
+
+          <HoneypotField value={honeypot} onChange={setHoneypot} />
 
           <button
             type="submit"

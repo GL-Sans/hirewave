@@ -20,12 +20,13 @@ interface RegisterData {
     password: string;
     password_confirmation: string;
     role: "WORKER" | "PRO" | "COMPANY";
+    company_website?: string; // campo esca (HoneypotField)
 }
 
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    login: (email: string, password: string) => Promise<void>;
+    login: (email: string, password: string, honeypot?: string) => Promise<void>;
     register: (data: RegisterData) => Promise<void>;
     logout: () => Promise<void>;
     fetchUser: () => Promise<void>;
@@ -66,11 +67,11 @@ export const AuthProvider = ({ children }: any) => {
     }, []);
 
     // Login
-    const login = async (email: string, password: string) => {
+    const login = async (email: string, password: string, honeypot = "") => {
         setLoading(true);
         try {
             await axiosClient.get("/sanctum/csrf-cookie");
-            await axiosClient.post("/api/login", { email, password });
+            await axiosClient.post("/api/login", { email, password, company_website: honeypot });
             await fetchUser();
         } finally {
             setLoading(false);
