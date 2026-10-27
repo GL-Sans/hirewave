@@ -13,7 +13,7 @@ type CompanyCardProps = {
 };
 
 export default function CompanyCard(props: CompanyCardProps) {
-    const { firstName, lastName, imageUrl } = props;
+    const { id, firstName, lastName, imageUrl } = props;
     const navigate = useNavigate();
 
     return (
@@ -37,7 +37,7 @@ export default function CompanyCard(props: CompanyCardProps) {
                 </button>
                 <button
                     className="w-8! h-8! p-0! rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/40 transition"
-                    onClick={(e) => { e.preventDefault(); navigate("/chat"); }}
+                    onClick={(e) => { e.preventDefault(); navigate(`/chat?to=${id}`); }}
                 >
                     <PaperAirplaneIcon className="w-5 h-5 transform -mt-0.5 ml-0.5 -rotate-45" />
                 </button>

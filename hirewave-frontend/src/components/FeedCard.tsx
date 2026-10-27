@@ -161,7 +161,8 @@ export default function FeedCard(props: FeedCardProps) {
                     <div className="mt-auto pt-3 flex flex-col gap-2">
 
                         {isCompanyViewer ? (
-                            <Link to="/chat">
+                            // Cognome visibile = profilo sbloccato; altrimenti si passa dal profilo per sbloccarlo
+                            <Link to={author.last_name ? `/chat?to=${author.id}` : authorPath}>
                                 <button className="w-full bg-blue-600 text-white text-sm font-semibold py-1.5 rounded-lg">
                                     {isWorkerAuthor
                                         ? "Contatta il lavoratore"
@@ -169,7 +170,7 @@ export default function FeedCard(props: FeedCardProps) {
                                 </button>
                             </Link>
                         ) : (
-                            <Link to="/chat">
+                            <Link to={`/chat?to=${author.id}`}>
                                 <button className="w-full bg-green-600 text-white text-sm font-semibold py-1.5 rounded-lg">
                                     {type === "job"
                                         ? "Candidati ora"
