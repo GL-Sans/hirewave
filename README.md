@@ -34,7 +34,7 @@ cd <percorso-destinazione>
 ### 2. Backend (Laravel)
 
 ```bash
-cd backend
+cd hirewave-backend-new
 ```
 
 #### Installa le dipendenze PHP
@@ -105,7 +105,7 @@ Il backend sarà disponibile su `http://localhost:8000`
 ### 3. Frontend (Vite / React)
 
 ```bash
-cd ../frontend
+cd ../hirewave-frontend
 npm install
 npm run dev
 ```
@@ -120,11 +120,11 @@ Apri **due terminali separati**:
 
 ```bash
 # Terminale 1 — Backend
-cd backend
+cd hirewave-backend-new
 php artisan serve
 
 # Terminale 2 — Frontend
-cd frontend
+cd hirewave-frontend
 npm run dev
 ```
 
@@ -134,16 +134,18 @@ npm run dev
 
 ```
 hirewave/
-├── backend/     → API Laravel (PHP)
-└── frontend/    → Interfaccia utente (Vite + React)
+├── hirewave-backend-new/   → API Laravel (PHP)
+└── hirewave-frontend/      → Interfaccia utente (Vite + React + TypeScript)
 ```
+
+In sviluppo il frontend inoltra a `http://localhost:8000` le richieste verso `/api`, `/sanctum`, `/storage`, `/login` e `/logout` tramite il proxy di Vite (`hirewave-frontend/vite.config.ts`), quindi il backend deve essere avviato.
 
 ---
 
 ## Problemi comuni
 
 ### `vendor/autoload.php` non trovato
-Esegui `composer install` nella cartella `backend/`.
+Esegui `composer install` nella cartella `hirewave-backend-new/`.
 
 ### Errore versione PHP (`php >=8.4`)
 Aggiorna PHP alla versione 8.4 o superiore. Verifica con `php --version`.
