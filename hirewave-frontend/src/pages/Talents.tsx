@@ -42,9 +42,26 @@ export default function TalentsPage() {
     const [filtroSettore, setFiltroSettore] = useState("Tutti i settori");
 
     useEffect(() => {
-        axiosClient.get("/api/talents")
-            .then((res) => setTalents(res.data ?? []))
-            .finally(() => setLoading(false));
+        const load = async () => {
+            // Ritorno dal checkout Stripe: conferma lo sblocco prima di caricare
+            const sessionId = new URLSearchParams(window.location.search).get("session_id");
+            if (sessionId) {
+                try {
+                    await axiosClient.post("/api/stripe/confirm", { session_id: sessionId });
+                } catch (err) {
+                    console.error("Errore conferma pagamento:", err);
+                }
+                window.history.replaceState(null, "", "/talents");
+            }
+
+            try {
+                const res = await axiosClient.get("/api/talents");
+                setTalents(res.data ?? []);
+            } finally {
+                setLoading(false);
+            }
+        };
+        load();
     }, []);
 
     const talentiFiltrati = useMemo(() => {

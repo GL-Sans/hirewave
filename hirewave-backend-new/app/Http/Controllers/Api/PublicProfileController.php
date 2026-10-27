@@ -60,6 +60,9 @@ class PublicProfileController extends Controller
             ($isCompanyViewer && $unlocked) ||
             $worker->role === 'COMPANY';
 
+        // Contatti: visibili se sbloccato o se il profilo è un'azienda
+        $canSeeContacts = $canSeeFullName || $worker->curriculum_public;
+
         // REVIEWS + MEDIA
         $reviews = Review::where('worker_id', $worker->id)
             ->with('reviewer:id,first_name')
@@ -86,15 +89,21 @@ class PublicProfileController extends Controller
                 'cv' => $isOwnProfile ? $worker->cv : null,
 
                 'unlocked' => $unlocked,
+                // stesse regole di MessageController::canMessage
+                'can_contact' => !$isOwnProfile && (
+                    !$isCompanyViewer ||
+                    ($worker->role !== 'COMPANY' && $unlocked)
+                ),
 
                 'rating_reputazionale_avg' => $average,
                 'rating_reputazionale_count' => $reviews->count(),
 
                 'curriculum_public' => $worker->curriculum_public,
                 // questi solo se curriculum è pubblico
-                'email' => $worker->curriculum_public ? $worker->email : null,
+                'email' => $canSeeContacts ? $worker->email : null,
+                'phone' => $canSeeContacts ? $worker->phone : null,
                 'bio' => $worker->curriculum_public ? $worker->bio : null,
-                'city' => $worker->curriculum_public ? $worker->city : null,
+                'city' => $canSeeContacts ? $worker->city : null,
                 'country' => $worker->curriculum_public ? $worker->country : null,
                 'website' => $worker->curriculum_public ? $worker->website : null,
                 'years_experience' => $worker->curriculum_public ? $worker->years_experience : null,

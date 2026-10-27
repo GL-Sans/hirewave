@@ -16,6 +16,7 @@ export default function ProfilePage() {
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [descriptionText, setDescriptionText] = useState("");
     const [savingDescription, setSavingDescription] = useState(false);
+    const [unlocking, setUnlocking] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cvInputRef = useRef<HTMLInputElement>(null);
     const { user: loggedUser, fetchUser, logout } = useAuth();
@@ -123,6 +124,20 @@ export default function ProfilePage() {
             alert("Errore durante il salvataggio della descrizione.");
         } finally {
             setSavingDescription(false);
+        }
+    };
+
+    const handleUnlock = async () => {
+        setUnlocking(true);
+        try {
+            const res = await axiosClient.post("/api/stripe/checkout", {
+                worker_id: user.id,
+            });
+            if (res.data.url) window.location.href = res.data.url;
+        } catch (err) {
+            console.error("Errore checkout:", err);
+            alert("Errore durante l'avvio del pagamento.");
+            setUnlocking(false);
         }
     };
 
@@ -438,6 +453,64 @@ export default function ProfilePage() {
                                             Aggiungi una descrizione
                                         </button>
                                     )
+                                )}
+                            </div>
+                        )}
+
+                        {/* Contatti / Sblocco */}
+                        {!isMyProfile && (
+                            <div className="mt-5 border-t border-gray-100 pt-5">
+                                {user.email || user.phone ? (
+                                    <div className="space-y-1 text-sm text-gray-700">
+                                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                                            Contatti
+                                        </h3>
+                                        {user.email && (
+                                            <p>
+                                                Email:{" "}
+                                                <a
+                                                    href={`mailto:${user.email}`}
+                                                    className="text-blue-600 hover:underline"
+                                                >
+                                                    {user.email}
+                                                </a>
+                                            </p>
+                                        )}
+                                        {user.phone && (
+                                            <p>
+                                                Telefono:{" "}
+                                                <a
+                                                    href={`tel:${user.phone}`}
+                                                    className="text-blue-600 hover:underline"
+                                                >
+                                                    {user.phone}
+                                                </a>
+                                            </p>
+                                        )}
+                                        {user.city && <p>Città: {user.city}</p>}
+                                    </div>
+                                ) : (
+                                    loggedUser?.role === "COMPANY" &&
+                                    user.role !== "COMPANY" &&
+                                    !user.unlocked && (
+                                        <button
+                                            onClick={handleUnlock}
+                                            disabled={unlocking}
+                                            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                        >
+                                            {unlocking
+                                                ? "Reindirizzamento..."
+                                                : "Sblocca profilo e contatti"}
+                                        </button>
+                                    )
+                                )}
+                                {user.can_contact && (
+                                    <Link
+                                        to={`/chat?to=${user.id}`}
+                                        className="mt-3 inline-flex px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-700"
+                                    >
+                                        Scrivi un messaggio
+                                    </Link>
                                 )}
                             </div>
                         )}

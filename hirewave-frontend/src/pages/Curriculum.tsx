@@ -106,7 +106,7 @@ export default function CurriculumPage() {
                         <span className="text-sm">{profileUser.first_name} {profileUser.last_name}</span>
                     </div>
                     <p className="text-sm text-slate-400">Questo utente ha scelto di mantenere il curriculum privato.</p>
-                    <Link to="/chat" className="text-sm text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 inline-block">
+                    <Link to={`/chat?to=${profileUser.id}`}className="text-sm text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 inline-block">
                         Contatta
                     </Link>
                 </div>
@@ -164,9 +164,18 @@ export default function CurriculumPage() {
                         </div>
                     ))}
 
+                    <div>
+                        <label className="text-sm text-slate-500 block mb-1">Telefono (visibile alle aziende che sbloccano il tuo profilo)</label>
+                        <input
+                            type="text"
+                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                            value={form.phone}
+                            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                        />
+                    </div>
+
                     <p className="text-xs text-slate-400 pt-1">Visibili solo a te 🔒</p>
                     {[
-                        { label: "Telefono", key: "phone" },
                         { label: "Data di nascita", key: "birth_date", type: "date" },
                     ].map(({ label, key, type }) => (
                         <div key={key}>
@@ -275,13 +284,14 @@ export default function CurriculumPage() {
             {/* Dati privati (solo mio profilo) */}
             {isMyProfile && (
                 <div className="bg-white rounded-2xl p-4 shadow-sm space-y-2 text-gray-700">
-                    <p className="text-xs text-slate-400">Visibili solo a te 🔒</p>
                     {profileUser.phone && (
                         <div className="flex gap-2">
                             <span className="text-slate-500 text-sm">Telefono:</span>
                             <span className="text-sm">{profileUser.phone}</span>
+                            <span className="text-xs text-slate-400 self-center">(visibile alle aziende che ti sbloccano)</span>
                         </div>
                     )}
+                    <p className="text-xs text-slate-400">Visibili solo a te 🔒</p>
                     {profileUser.birth_date && (
                         <div className="flex gap-2">
                             <span className="text-slate-500 text-sm">Data di nascita:</span>
@@ -294,7 +304,7 @@ export default function CurriculumPage() {
             {/* Bottone contatta (profilo altrui) */}
             {!isMyProfile && (
                 <div className="bg-white rounded-2xl p-4 shadow-sm">
-                    <Link to="/chat" className="text-sm text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 inline-block">
+                    <Link to={`/chat?to=${profileUser.id}`}className="text-sm text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 inline-block">
                         Contatta
                     </Link>
                 </div>

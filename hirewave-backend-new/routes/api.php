@@ -46,6 +46,7 @@ Route::middleware(['web', 'auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::post('/posts', [PostController::class, 'store']);
     Route::post('/onboarding', [App\Http\Controllers\Api\OnboardingController::class, 'submit']);
     Route::post('/stripe/checkout', [StripeController::class, 'createCheckout']);
+    Route::post('/stripe/confirm', [StripeController::class, 'confirm']);
     Route::get('/profiles/{id}/reviews', [App\Http\Controllers\Api\ReviewController::class, 'index']);
     Route::post('/profiles/{id}/reviews', [App\Http\Controllers\Api\ReviewController::class, 'store']);
 });

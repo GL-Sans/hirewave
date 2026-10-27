@@ -4,6 +4,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Stripe\Stripe;
 use Stripe\Checkout\Session;
 use Stripe\Webhook;
@@ -16,7 +17,24 @@ class StripeController extends Controller
             'worker_id' => 'required|exists:users,id',
         ]);
 
+        $company = Auth::user();
+        if ($company->role !== 'COMPANY') {
+            return response()->json(['message' => 'Solo le aziende possono sbloccare i profili'], 403);
+        }
+
         $worker = User::findOrFail($request->worker_id);
+        if ($worker->role === 'COMPANY') {
+            return response()->json(['message' => 'Profilo non sbloccabile'], 422);
+        }
+
+        $frontendUrl = config('services.frontend.url');
+
+        // Modalità demo: senza chiavi Stripe lo sblocco è immediato
+        if (!config('services.stripe.secret')) {
+            $this->unlock($company->id, $worker->id);
+            return response()->json(['url' => $frontendUrl . '/talents?unlocked=' . $worker->id]);
+        }
+
         Stripe::setApiKey(config('services.stripe.secret'));
 
         $session = Session::create([
@@ -33,15 +51,49 @@ class StripeController extends Controller
                 'quantity' => 1,
             ]],
             'mode' => 'payment',
-            'success_url' => env('FRONTEND_URL') . '/talents?unlocked=' . $worker->id,
-            'cancel_url' => env('FRONTEND_URL') . '/talents',
+            'success_url' => $frontendUrl . '/talents?unlocked=' . $worker->id . '&session_id={CHECKOUT_SESSION_ID}',
+            'cancel_url' => $frontendUrl . '/talents',
             'metadata' => [
                 'worker_id' => $worker->id,
-                'company_id' => Auth::id(),
+                'company_id' => $company->id,
             ],
         ]);
 
         return response()->json(['url' => $session->url]);
+    }
+
+    // Verifica il pagamento al ritorno dal checkout (non dipende dal webhook)
+    public function confirm(Request $request)
+    {
+        $request->validate([
+            'session_id' => 'required|string',
+        ]);
+
+        if (!config('services.stripe.secret')) {
+            return response()->json(['unlocked' => false], 422);
+        }
+
+        Stripe::setApiKey(config('services.stripe.secret'));
+
+        try {
+            $session = Session::retrieve($request->session_id);
+        } catch (\Exception $e) {
+            return response()->json(['unlocked' => false], 404);
+        }
+
+        if (
+            $session->payment_status !== 'paid' ||
+            (int) $session->metadata->company_id !== Auth::id()
+        ) {
+            return response()->json(['unlocked' => false], 422);
+        }
+
+        $this->unlock($session->metadata->company_id, $session->metadata->worker_id);
+
+        return response()->json([
+            'unlocked' => true,
+            'worker_id' => (int) $session->metadata->worker_id,
+        ]);
     }
 
     public function webhook(Request $request)
@@ -61,17 +113,18 @@ class StripeController extends Controller
 
         if ($event->type === 'checkout.session.completed') {
             $session = $event->data->object;
-            $workerId = $session->metadata->worker_id;
-            $companyId = $session->metadata->company_id;
-
-            // Salva lo sblocco nel DB
-            \DB::table('unlocked_profiles')->insertOrIgnore([
-                'company_id' => $companyId,
-                'worker_id' => $workerId,
-                'unlocked_at' => now(),
-            ]);
+            $this->unlock($session->metadata->company_id, $session->metadata->worker_id);
         }
 
         return response()->json(['status' => 'ok']);
+    }
+
+    private function unlock($companyId, $workerId): void
+    {
+        DB::table('unlocked_profiles')->insertOrIgnore([
+            'company_id' => $companyId,
+            'worker_id' => $workerId,
+            'unlocked_at' => now(),
+        ]);
     }
 }

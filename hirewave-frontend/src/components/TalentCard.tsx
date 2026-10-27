@@ -6,6 +6,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import axiosClient from "../api/axiosClient";
 
 type TalentCardProps = {
     id: number;
@@ -40,16 +41,11 @@ export default function TalentCard(props: TalentCardProps) {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await fetch("/api/stripe/checkout", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Accept": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ worker_id: id }),
-            });
-            const data = await res.json();
-            if (data.url) window.location.href = data.url;
-        } catch (err) {
+            const res = await axiosClient.post("/api/stripe/checkout", { worker_id: id });
+            if (res.data.url) window.location.href = res.data.url;
+        } catch (err: any) {
             console.error("Errore checkout:", err);
+            alert(err?.response?.data?.message ?? "Errore durante l'avvio del pagamento.");
         } finally {
             setLoading(false);
         }
@@ -97,7 +93,7 @@ export default function TalentCard(props: TalentCardProps) {
                 </button>
                 <button
                     className="w-8! h-8! p-0! rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition"
-                    onClick={(e) => { e.preventDefault(); navigate("/chat"); }}
+                    onClick={(e) => { e.preventDefault(); navigate(isCompany && !unlocked ? profilePath : `/chat?to=${id}`); }}
                 >
                     <PaperAirplaneIcon className="w-5 h-5 -rotate-45 -mt-0.5 ml-0.5" />
                 </button>
