@@ -9,6 +9,8 @@ interface User {
     role: "WORKER" | "PRO" | "COMPANY";
     profile_image?: string;
     onboarding_completato?: boolean;
+    notifications_enabled?: boolean;
+    has_password?: boolean;
 }
 
 interface RegisterData {

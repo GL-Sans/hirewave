@@ -68,6 +68,72 @@ a:hover {
   color: #747bff;
 }
 
+/*
+ * Tema scuro (Impostazioni → Tema scuro, classe .dark su <html>).
+ * Le pagine usano le classi chiare di Tailwind: qui si ridefiniscono i colori
+ * di base (scale slate/gray invertite e sfondi tenui scuriti), così tutta
+ * l'app cambia tema senza duplicare le classi dark: in ogni componente.
+ */
+.dark {
+  color-scheme: dark;
+  color: #e2e8f0;
+  background-color: #0b1222;
+
+  --color-slate-50: #0b1222;
+  --color-slate-100: #162033;
+  --color-slate-200: #253246;
+  --color-slate-300: #3a4a62;
+  --color-slate-400: #7d8ca3;
+  --color-slate-500: #94a3b8;
+  --color-slate-600: #b6c2d3;
+  --color-slate-700: #cbd5e1;
+  --color-slate-800: #e2e8f0;
+  --color-slate-900: #f1f5f9;
+  --color-slate-950: #f8fafc;
+
+  --color-gray-50: #0f1115;
+  --color-gray-100: #1a1d23;
+  --color-gray-200: #2a2e36;
+  --color-gray-300: #3d424c;
+  --color-gray-400: #7c828d;
+  --color-gray-500: #9ca3af;
+  --color-gray-600: #c0c5cd;
+  --color-gray-700: #d1d5db;
+  --color-gray-800: #e5e7eb;
+  --color-gray-900: #f3f4f6;
+
+  /* sfondi e bordi tenui colorati */
+  --color-blue-50: #14213d;
+  --color-blue-100: #1a2b52;
+  --color-blue-200: #23396b;
+  --color-indigo-50: #1a1b3d;
+  --color-indigo-100: #222452;
+  --color-red-50: #3a1518;
+  --color-red-100: #4a1a1e;
+  --color-red-200: #5c2227;
+  --color-green-100: #12341f;
+  --color-green-200: #184528;
+  --color-amber-100: #3d2e0f;
+}
+
+.dark body {
+  background-color: #0b1222;
+}
+
+.dark .bg-white {
+  background-color: #111a2b;
+}
+
+.dark .text-black {
+  color: #e2e8f0;
+}
+
+/* I pulsanti pieni slate diventano chiari: il testo bianco va scurito */
+.dark .bg-slate-900.text-white,
+.dark .bg-slate-800.text-white {
+  color: #0b1222;
+}
+
 /* iOS ingrandisce la pagina sui campi con testo sotto i 16px */
 @media (max-width: 767px) {
   input,

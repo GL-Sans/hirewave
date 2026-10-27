@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { profilePath } from "../utils/profilePath";
+import axiosClient from "../api/axiosClient";
 import {
     HomeIcon,
     UserGroupIcon,
@@ -12,6 +13,7 @@ import {
     ChevronDownIcon,
     Cog6ToothIcon,
     ArrowRightOnRectangleIcon,
+    BellIcon,
 } from "@heroicons/react/24/outline";
 
 // type Props = {
@@ -23,6 +25,24 @@ export default function Navbar() {
     const { user, logout } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
+    const [unread, setUnread] = useState(0);
+    const location = useLocation();
+
+    // Conteggio notifiche non lette: ogni 20 s, a ogni cambio pagina e quando la pagina Notifiche lo segnala
+    useEffect(() => {
+        if (!user) return;
+        const load = () =>
+            axiosClient.get("/api/notifications/unread-count")
+                .then((res) => setUnread(res.data.unread))
+                .catch(() => {});
+        load();
+        const t = setInterval(load, 20000);
+        window.addEventListener("notifications:changed", load);
+        return () => {
+            clearInterval(t);
+            window.removeEventListener("notifications:changed", load);
+        };
+    }, [user, location.pathname]);
 
     // Close menu when clicking outside
     useEffect(() => {
@@ -113,6 +133,20 @@ export default function Navbar() {
                             <span>Chat</span>
                         </Link>
                     </nav>
+
+                    {/* NOTIFICHE */}
+                    <Link
+                        to="/notifications"
+                        aria-label={unread > 0 ? `Notifiche, ${unread} non lette` : "Notifiche"}
+                        className="relative ml-auto md:ml-0 mr-2 p-2 rounded-full text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    >
+                        <BellIcon className="w-6 h-6" />
+                        {unread > 0 && (
+                            <span className="absolute top-0.5 right-0.5 min-w-4 h-4 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                {unread > 99 ? "99+" : unread}
+                            </span>
+                        )}
+                    </Link>
 
                     {/* UTENTE */}
                     <div className="relative" ref={menuRef}>
