@@ -72,6 +72,9 @@ class PublicProfileController extends Controller
                 'rating_reputazionale' => $worker->rating_reputazionale ?? 0,
 
                 'settore' => $worker->settore,
+                // Dati aziendali pubblici
+                'dimensione_azienda' => $worker->role === 'COMPANY' ? $worker->dimensione_azienda : null,
+                'anni_attivita' => $worker->role === 'COMPANY' ? $worker->anni_esperienza : null,
                 'cv' => $isOwnProfile ? $worker->cv : null,
 
                 'unlocked' => $unlocked,

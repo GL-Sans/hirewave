@@ -6,6 +6,7 @@ import FeedCard from "../components/FeedCard";
 import type { FeedPost } from "../types/Feed";
 import { useAuth } from "../context/AuthContext";
 import { profileIdFromParam, profilePath } from "../utils/profilePath";
+import { companySizeLabel, roleLabel } from "../utils/labels";
 
 export default function ProfilePage() {
     const { name } = useParams();
@@ -270,8 +271,8 @@ export default function ProfilePage() {
                                 {user.first_name}
                                 {user.last_name ? ` ${user.last_name}` : ""}
                             </h1>
-                            <p className="text-sm text-slate-500 capitalize">
-                                {user.role}
+                            <p className="text-sm text-slate-500">
+                                {roleLabel(user.role)}
                             </p>
                             <Link
                                 to={`${profilePath(user)}/curriculum`}
@@ -295,7 +296,33 @@ export default function ProfilePage() {
                                         : "Dichiarato"}
                                 </span>
                             )}
-                            {user.rating_tecnico > 0 && (
+                            {user.role === "COMPANY" &&
+                                (user.settore || user.dimensione_azienda || user.anni_attivita != null || user.anni_esperienza != null) && (
+                                <div className="mt-3 border border-slate-200 rounded-xl p-4 max-w-sm w-full space-y-1.5 text-xs text-slate-500">
+                                    <span className="text-sm font-semibold text-slate-700 block mb-2">
+                                        Azienda
+                                    </span>
+                                    {user.settore && (
+                                        <div className="flex justify-between gap-4">
+                                            <span>Settore</span>
+                                            <span className="font-medium text-slate-700 text-right">{user.settore}</span>
+                                        </div>
+                                    )}
+                                    {user.dimensione_azienda && (
+                                        <div className="flex justify-between gap-4">
+                                            <span>Dimensione</span>
+                                            <span className="font-medium text-slate-700 text-right">{companySizeLabel(user.dimensione_azienda)}</span>
+                                        </div>
+                                    )}
+                                    {(user.anni_attivita ?? user.anni_esperienza) != null && (
+                                        <div className="flex justify-between gap-4">
+                                            <span>Attiva da</span>
+                                            <span className="font-medium text-slate-700">{user.anni_attivita ?? user.anni_esperienza} anni</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            {user.role !== "COMPANY" && user.rating_tecnico > 0 && (
                                 <div className="mt-3 border border-slate-200 rounded-xl p-4 max-w-sm">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-sm font-semibold text-slate-700">

@@ -9,6 +9,7 @@ import { ChatMessage } from "../components/ChatMessage";
 import axiosClient from "../api/axiosClient";
 import { useAuth } from "../context/AuthContext";
 import { profilePath } from "../utils/profilePath";
+import { roleLabel } from "../utils/labels";
 
 type Contact = {
     id: number;
@@ -286,7 +287,7 @@ export default function ChatPage() {
                                 <Link to={profilePath(selectedContact)} className="block truncate font-semibold text-slate-900 text-sm hover:underline">
                                     {fullName(selectedContact)}
                                 </Link>
-                                <p className="text-xs text-slate-400 capitalize">{selectedContact.role.toLowerCase()}</p>
+                                <p className="text-xs text-slate-400">{roleLabel(selectedContact.role)}</p>
                             </div>
                         </div>
 

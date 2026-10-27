@@ -14,7 +14,7 @@ const DOMANDE_WORKER = [
 const DOMANDE_COMPANY = [
     { id: "settore", domanda: "In quale settore opera la tua azienda?", tipo: "select", opzioni: ["Ristorazione / HoReCa", "Turismo / Hospitality", "Eventi", "Logistica", "Commercio / Retail", "IT / Digitale", "Altro"] },
     { id: "ral_aspettativa", domanda: "Qual è la retribuzione media che offri?", tipo: "select", opzioni: ["Meno di €1.000/mese", "€1.000 – €1.500/mese", "€1.500 – €2.000/mese", "€2.000 – €3.000/mese", "Oltre €3.000/mese", "Tariffa giornaliera / Freelance"] },
-    { id: "livello_istruzione", domanda: "Che dimensione ha la tua azienda?", tipo: "select", opzioni: [{ label: "Micro (1-5 dipendenti)", value: "licenza_media" }, { label: "Piccola (6-20 dipendenti)", value: "diploma" }, { label: "Media (21-50 dipendenti)", value: "laurea_triennale" }, { label: "Grande (50+ dipendenti)", value: "laurea_magistrale" }] },
+    { id: "dimensione_azienda", domanda: "Che dimensione ha la tua azienda?", tipo: "select", opzioni: [{ label: "Micro (1-5 dipendenti)", value: "micro" }, { label: "Piccola (6-20 dipendenti)", value: "piccola" }, { label: "Media (21-50 dipendenti)", value: "media" }, { label: "Grande (50+ dipendenti)", value: "grande" }] },
     { id: "anni_esperienza", domanda: "Da quanti anni è attiva l'azienda?", tipo: "select", opzioni: [{ label: "Meno di 1 anno", value: "1" }, { label: "1 – 3 anni", value: "2" }, { label: "3 – 5 anni", value: "4" }, { label: "5 – 10 anni", value: "7" }, { label: "Oltre 10 anni", value: "11" }] },
     { id: "certificazioni", domanda: "Hai certificazioni o requisiti specifici per i candidati?", tipo: "text", placeholder: "Es. HACCP obbligatorio, patente B... (opzionale)" },
 ];

@@ -46,6 +46,7 @@ class User extends Authenticatable
         'settore',
         'ral_aspettativa',
         'livello_istruzione',
+        'dimensione_azienda',
         'anni_esperienza',
         'certificazioni',
         'rating_tecnico',

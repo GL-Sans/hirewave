@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Support\RatingTecnico;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -28,6 +29,19 @@ class CurriculumController extends Controller
             'languages'        => 'nullable|array',
             'languages.*'      => 'string|max:50',
         ]);
+
+        // Un solo dato di esperienza: allinea quello dell'onboarding e ricalcola il rating
+        if (array_key_exists('years_experience', $fields) && $fields['years_experience'] !== null) {
+            $fields['anni_esperienza'] = $fields['years_experience'];
+
+            if ($user->role !== 'COMPANY' && $user->onboarding_completato) {
+                $fields['rating_tecnico'] = RatingTecnico::calcola(
+                    $user->livello_istruzione,
+                    (int) $fields['years_experience'],
+                    $user->certificazioni
+                );
+            }
+        }
 
         $user->update($fields);
 

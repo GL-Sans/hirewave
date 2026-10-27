@@ -46,7 +46,7 @@ export default function CurriculumPage() {
                         website: u.website ?? "",
                         phone: u.phone ?? "",
                         birth_date: u.birth_date ?? "",
-                        years_experience: u.years_experience ?? "",
+                        years_experience: u.years_experience ?? u.anni_esperienza ?? "",
                         contract_type: u.contract_type ?? "",
                         available: u.available ?? true,
                         curriculum_public: u.curriculum_public ?? false,
