@@ -24,7 +24,7 @@ export default function MainLayout() {
   // }, [menuOpen]);
 
   return (
-    <div className="h-dvh bg-slate-50 overflow-hidden">
+    <div className="min-h-dvh bg-slate-50">
       {/*<Navbar  onMenuClick={toggleMenu}  />*/}
 
       {/* <DrawerMenu
@@ -32,7 +32,7 @@ export default function MainLayout() {
         onClose={() => setMenuOpen(false)}
       /> */}
 
-      <main className="pt-0 md:pt-20 pb-20 md:pb-8 max-w-5xl mx-auto px-4">
+      <main className="max-w-5xl mx-auto px-4">
         <Outlet />
       </main>
       {/* <Footer /> */}

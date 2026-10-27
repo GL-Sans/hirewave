@@ -8,6 +8,7 @@ import {
 import { ChatMessage } from "../components/ChatMessage";
 import axiosClient from "../api/axiosClient";
 import { useAuth } from "../context/AuthContext";
+import { profilePath } from "../utils/profilePath";
 
 type Contact = {
     id: number;
@@ -32,6 +33,38 @@ type ApiMessage = {
 };
 
 const POLL_MS = 4000;
+
+// Su mobile la conversazione è a schermo intero e segue l'area visibile
+// (si restringe quando si apre la tastiera)
+function useMobileViewport() {
+    const [state, setState] = useState(() => ({
+        isMobile: window.matchMedia("(max-width: 767px)").matches,
+        height: window.visualViewport?.height ?? window.innerHeight,
+        top: window.visualViewport?.offsetTop ?? 0,
+    }));
+
+    useEffect(() => {
+        const mq = window.matchMedia("(max-width: 767px)");
+        const vv = window.visualViewport;
+        const update = () => setState({
+            isMobile: mq.matches,
+            height: vv?.height ?? window.innerHeight,
+            top: vv?.offsetTop ?? 0,
+        });
+        mq.addEventListener("change", update);
+        vv?.addEventListener("resize", update);
+        vv?.addEventListener("scroll", update);
+        window.addEventListener("resize", update);
+        return () => {
+            mq.removeEventListener("change", update);
+            vv?.removeEventListener("resize", update);
+            vv?.removeEventListener("scroll", update);
+            window.removeEventListener("resize", update);
+        };
+    }, []);
+
+    return state;
+}
 
 function formatTime(iso: string) {
     const d = new Date(iso);
@@ -75,7 +108,8 @@ export default function ChatPage() {
     const [sending, setSending] = useState(false);
     const [error, setError] = useState("");
     const [search, setSearch] = useState("");
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesRef = useRef<HTMLDivElement>(null);
+    const viewport = useMobileViewport();
 
     useEffect(() => {
         document.body.style.overflow = "hidden";
@@ -127,9 +161,11 @@ export default function ChatPage() {
         return () => clearInterval(t);
     }, [selectedId, loadMessages]);
 
+    // Scorre solo il contenitore dei messaggi: scrollIntoView spostava tutta la pagina
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages.length]);
+        const el = messagesRef.current;
+        if (el) el.scrollTop = el.scrollHeight;
+    }, [messages.length, selectedId, viewport.height]);
 
     const filteredConversations = conversations.filter(c =>
         fullName(c.contact).toLowerCase().includes(search.toLowerCase())
@@ -166,13 +202,11 @@ export default function ChatPage() {
         }
     };
 
-    const contactProfilePath = (c: Contact) =>
-        c.last_name
-            ? `/profile/${c.first_name.toLowerCase()}-${c.last_name.toLowerCase()}`
-            : `/profile/${c.id}`;
+    const mobileFullscreen = viewport.isMobile && showChatOnMobile;
 
     return (
-        <div className="flex h-[calc(100vh-160px)] bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200">
+        // Altezza = viewport meno i padding di MainLayout (pt-20 + pb-24 mobile, pt-20 + pb-8 desktop)
+        <div className="flex h-[calc(100dvh-176px)] md:h-[calc(100dvh-112px)] bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200">
 
             {/* Sidebar Contatti */}
             <div className={`w-full md:w-80 border-r border-slate-100 flex flex-col ${showChatOnMobile ? "hidden md:flex" : "flex"}`}>
@@ -230,20 +264,26 @@ export default function ChatPage() {
             </div>
 
             {/* Area Messaggi */}
-            <div className={`${showChatOnMobile ? "flex" : "hidden"} md:flex flex-1 flex-col`}>
+            <div
+                className={`${showChatOnMobile ? "flex" : "hidden"} md:flex flex-1 flex-col min-w-0 bg-white ${
+                    mobileFullscreen ? "fixed inset-x-0 z-[60]" : ""
+                }`}
+                style={mobileFullscreen ? { top: viewport.top, height: viewport.height } : undefined}
+            >
                 {selectedContact ? (
                     <>
                         {/* Header chat */}
-                        <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3 bg-white">
+                        <div className="shrink-0 px-4 py-3 border-b border-slate-100 flex items-center gap-3 bg-white">
                             <button
                                 onClick={() => setShowChatOnMobile(false)}
-                                className="md:hidden p-1 -ml-1 text-slate-400 hover:text-slate-600"
+                                className="md:hidden p-1! -ml-1 border-0! bg-transparent text-slate-400 hover:text-slate-600"
+                                aria-label="Torna alle conversazioni"
                             >
                                 <ChevronLeftIcon className="w-6 h-6" />
                             </button>
                             <Avatar contact={selectedContact} size="w-10 h-10" />
-                            <div className="flex-1">
-                                <Link to={contactProfilePath(selectedContact)} className="font-semibold text-slate-900 text-sm hover:underline">
+                            <div className="flex-1 min-w-0">
+                                <Link to={profilePath(selectedContact)} className="block truncate font-semibold text-slate-900 text-sm hover:underline">
                                     {fullName(selectedContact)}
                                 </Link>
                                 <p className="text-xs text-slate-400 capitalize">{selectedContact.role.toLowerCase()}</p>
@@ -251,7 +291,7 @@ export default function ChatPage() {
                         </div>
 
                         {/* Messaggi */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/30">
+                        <div ref={messagesRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-3 bg-slate-50/30">
                             {messages.map((msg) => (
                                 <ChatMessage
                                     key={msg.id}
@@ -262,11 +302,10 @@ export default function ChatPage() {
                                     }}
                                 />
                             ))}
-                            <div ref={messagesEndRef} />
                         </div>
 
                         {/* Input */}
-                        <div className="p-3 bg-white border-t border-slate-100">
+                        <div className="shrink-0 p-3 bg-white border-t border-slate-100">
                             {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
                             {canSend ? (
                                 <div className="flex items-center gap-2 bg-slate-100 px-3 py-2 rounded-2xl">
@@ -276,7 +315,7 @@ export default function ChatPage() {
                                         onChange={(e) => setMessage(e.target.value)}
                                         onKeyDown={handleKeyDown}
                                         placeholder="Scrivi un messaggio..."
-                                        className="flex-1 bg-transparent border-none focus:ring-0 text-sm outline-none"
+                                        className="flex-1 min-w-0 bg-transparent border-none focus:ring-0 text-base md:text-sm outline-none"
                                     />
                                     <button
                                         onClick={handleSend}

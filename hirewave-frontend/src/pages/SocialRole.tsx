@@ -38,8 +38,8 @@ export default function SocialRolePage() {
     };
 
     return (
-        <div className="text-black h-dvh overflow-hidden flex items-center justify-center bg-slate-50">
-            <div className="w-full max-w-md bg-white shadow-lg rounded-2xl p-8">
+        <div className="text-black min-h-dvh py-8 flex items-center justify-center bg-slate-50">
+            <div className="w-full max-w-md bg-white shadow-lg rounded-2xl p-6 sm:p-8">
                 <h1 className="text-2xl font-bold mb-2 text-center">
                     Completa la registrazione
                 </h1>
