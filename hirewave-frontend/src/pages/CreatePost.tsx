@@ -214,7 +214,7 @@ export default function CreatePostPage() {
                 </select>
 
                 <div className="flex gap-2">
-                    <div className="relative flex-1">
+                    <div className="relative flex-1 min-w-0">
                         <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 pointer-events-none">
                             €
                         </span>

@@ -338,7 +338,7 @@ export default function ProfilePage() {
 
                     <div className="text-center md:text-left flex-1 pb-2">
                         <div className="flex flex-col items-center md:items-start gap-2">
-                            <h1 className="text-2xl font-bold text-gray-900">
+                            <h1 className="text-2xl font-bold text-gray-900 break-words max-w-full">
                                 {user.first_name}
                                 {user.last_name ? ` ${user.last_name}` : ""}
                             </h1>
@@ -376,26 +376,26 @@ export default function ProfilePage() {
                                     {user.settore && (
                                         <div className="flex justify-between gap-4">
                                             <span>Settore</span>
-                                            <span className="font-medium text-slate-700 text-right">{user.settore}</span>
+                                            <span className="font-medium text-slate-700 text-right min-w-0 break-words">{user.settore}</span>
                                         </div>
                                     )}
                                     {user.dimensione_azienda && (
                                         <div className="flex justify-between gap-4">
                                             <span>Dimensione</span>
-                                            <span className="font-medium text-slate-700 text-right">{companySizeLabel(user.dimensione_azienda)}</span>
+                                            <span className="font-medium text-slate-700 text-right min-w-0 break-words">{companySizeLabel(user.dimensione_azienda)}</span>
                                         </div>
                                     )}
                                     {(user.anni_attivita ?? user.anni_esperienza) != null && (
                                         <div className="flex justify-between gap-4">
                                             <span>Attiva da</span>
-                                            <span className="font-medium text-slate-700">{user.anni_attivita ?? user.anni_esperienza} anni</span>
+                                            <span className="font-medium text-slate-700 text-right min-w-0 break-words">{user.anni_attivita ?? user.anni_esperienza} anni</span>
                                         </div>
                                     )}
                                 </div>
                             )}
                             {user.role !== "COMPANY" && user.rating_tecnico > 0 && (
-                                <div className="mt-3 border border-slate-200 rounded-xl p-4 max-w-sm">
-                                    <div className="flex items-center justify-between mb-2">
+                                <div className="mt-3 border border-slate-200 rounded-xl p-4 max-w-sm w-full">
+                                    <div className="flex items-center justify-between gap-2 mb-2">
                                         <span className="text-sm font-semibold text-slate-700">
                                             Rating Tecnico
                                         </span>
@@ -416,7 +416,7 @@ export default function ProfilePage() {
                                     </div>
                                     <div className="space-y-1.5 text-xs text-slate-500">
                                         {user.livello_istruzione && (
-                                            <div className="flex justify-between">
+                                            <div className="flex justify-between gap-4">
                                                 <span>Istruzione</span>
                                                 <span className="font-medium text-slate-700 capitalize">
                                                     {user.livello_istruzione.replace(
@@ -427,25 +427,25 @@ export default function ProfilePage() {
                                             </div>
                                         )}
                                         {user.anni_esperienza != null && (
-                                            <div className="flex justify-between">
+                                            <div className="flex justify-between gap-4">
                                                 <span>Esperienza</span>
-                                                <span className="font-medium text-slate-700">
+                                                <span className="font-medium text-slate-700 text-right min-w-0 break-words">
                                                     {user.anni_esperienza} anni
                                                 </span>
                                             </div>
                                         )}
                                         {user.settore && (
-                                            <div className="flex justify-between">
+                                            <div className="flex justify-between gap-4">
                                                 <span>Settore</span>
-                                                <span className="font-medium text-slate-700">
+                                                <span className="font-medium text-slate-700 text-right min-w-0 break-words">
                                                     {user.settore}
                                                 </span>
                                             </div>
                                         )}
                                         {user.certificazioni && (
-                                            <div className="flex justify-between">
+                                            <div className="flex justify-between gap-4">
                                                 <span>Certificazioni</span>
-                                                <span className="font-medium text-slate-700">
+                                                <span className="font-medium text-slate-700 text-right min-w-0 break-words">
                                                     {user.certificazioni}
                                                 </span>
                                             </div>
@@ -562,7 +562,7 @@ export default function ProfilePage() {
                                                 Email:{" "}
                                                 <a
                                                     href={`mailto:${user.email}`}
-                                                    className="text-blue-600 hover:underline"
+                                                    className="text-blue-600 hover:underline break-all"
                                                 >
                                                     {user.email}
                                                 </a>

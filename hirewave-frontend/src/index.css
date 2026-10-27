@@ -25,13 +25,6 @@
   display: none;
 }
 
-a {
-  font-weight: 500;
-  text-decoration: none;
-}
-/* a:hover {
-} */
-
 body {
   overflow-x: hidden !important;
   width: 100%;
@@ -41,31 +34,61 @@ body {
   background-color: #f8fafc;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+/*
+ * Stili predefiniti di link, titoli e pulsanti (dal template di Vite).
+ * Stanno nel layer "base" di Tailwind: valgono solo dove un componente non
+ * specifica le proprie classi. Prima erano fuori dai layer e vincevano sulle
+ * classi Tailwind (es. h1 a 3.2em ignorava text-xl e spingeva i pulsanti
+ * fuori dallo schermo su telefono; i pulsanti ignoravano px-/py-/border-).
+ */
+@layer base {
+  a {
+    font-weight: 500;
+    text-decoration: none;
+  }
+  a:hover {
+    color: #747bff;
+  }
+
+  h1 {
+    font-size: 3.2em;
+    line-height: 1.1;
+  }
+
+  button {
+    border-radius: 8px;
+    border: 1px solid gray;
+    padding: 0.6em 1.2em;
+    font-size: 1em;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.25s;
+  }
+  button:hover {
+    border-color: #646cff;
+  }
+  button:focus,
+  button:focus-visible {
+    outline: 4px auto -webkit-focus-ring-color;
+  }
+
+  /* I campi hanno una larghezza minima intrinseca (~20 caratteri): affiancati
+     in un flex su telefono uscivano dallo schermo */
+  input,
+  select,
+  textarea {
+    min-width: 0;
+    max-width: 100%;
+  }
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid gray;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-a:hover {
-  color: #747bff;
+/* Niente zoom con pizzico né doppio tocco: l'app resta statica come un'app nativa */
+html,
+body {
+  touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 /*

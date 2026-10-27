@@ -299,8 +299,8 @@ export default function FeedCard(props: FeedCardProps) {
                         ))}
                     </div>
 
-                    <div className="flex items-center justify-between text-xs text-slate-600 mt-2">
-                        <span className="truncate">{contractType}</span>
+                    <div className="flex items-center justify-between gap-2 text-xs text-slate-600 mt-2">
+                        <span className="truncate min-w-0">{contractType}</span>
                         <span className="font-semibold whitespace-nowrap">
                             {budget !== "—" && budget
                                 ? `€ ${budget}${

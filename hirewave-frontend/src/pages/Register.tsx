@@ -53,7 +53,7 @@ export default function RegisterPage() {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="flex gap-4">
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                             <label className="block text-sm font-medium mb-1">
                                 Nome
                             </label>
@@ -65,7 +65,7 @@ export default function RegisterPage() {
                                 required
                             />
                         </div>
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                             <label className="block text-sm font-medium mb-1">
                                 Cognome
                             </label>

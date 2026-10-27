@@ -27,8 +27,7 @@ export default defineConfig({
           });
         },
       },
-      "/login": backendProxy,
-      "/logout": backendProxy,
+      // /login e /logout NON vanno inoltrati: sono pagine dell'app (il login usa /api/login)
       "/sanctum": backendProxy,
       "/storage": backendProxy,
     },
