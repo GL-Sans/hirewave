@@ -6,7 +6,7 @@ use App\Models\Message;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use App\Support\ProfileAccess;
 
 class MessageController extends Controller
 {
@@ -23,11 +23,12 @@ class MessageController extends Controller
         $byContact = $messages->groupBy(fn ($m) => $m->sender_id === $me->id ? $m->receiver_id : $m->sender_id);
 
         $contacts = User::whereIn('id', $byContact->keys())->get()->keyBy('id');
+        $unlockedIds = ProfileAccess::unlockedIds($me);
 
-        $conversations = $byContact->map(function ($msgs, $contactId) use ($me, $contacts) {
+        $conversations = $byContact->map(function ($msgs, $contactId) use ($me, $contacts, $unlockedIds) {
             $last = $msgs->first();
             return [
-                'contact' => $this->presentUser($me, $contacts[$contactId]),
+                'contact' => $this->presentUser($me, $contacts[$contactId], $unlockedIds),
                 'last_message' => $last->body,
                 'last_message_at' => $last->created_at,
                 'unread' => $msgs->where('receiver_id', $me->id)->whereNull('read_at')->count(),
@@ -112,24 +113,12 @@ class MessageController extends Controller
 
     private function isUnlocked($companyId, $workerId): bool
     {
-        return DB::table('unlocked_profiles')
-            ->where('company_id', $companyId)
-            ->where('worker_id', $workerId)
-            ->exists();
+        return ProfileAccess::isUnlocked($companyId, $workerId);
     }
 
     // Stesse regole di anonimato di feed e profili
-    private function presentUser(User $me, User $other): array
+    private function presentUser(User $me, User $other, ?array $unlockedIds = null): array
     {
-        $visible = $other->role === 'COMPANY'
-            || ($me->role === 'COMPANY' && $this->isUnlocked($me->id, $other->id));
-
-        return [
-            'id' => $other->id,
-            'first_name' => $other->first_name,
-            'last_name' => $visible ? $other->last_name : null,
-            'role' => $other->role,
-            'profile_image' => $visible ? $other->profile_image : null,
-        ];
+        return ProfileAccess::present($me, $other, $unlockedIds);
     }
 }

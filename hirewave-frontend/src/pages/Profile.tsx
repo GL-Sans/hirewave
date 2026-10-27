@@ -482,6 +482,12 @@ export default function ProfilePage() {
                                             </p>
                                         )}
                                         {user.city && <p>Città: {user.city}</p>}
+                                        {user.unlock_expires_at && (
+                                            <p className="text-xs text-slate-400 pt-1">
+                                                Profilo sbloccato fino al{" "}
+                                                {new Date(user.unlock_expires_at).toLocaleDateString("it-IT")}
+                                            </p>
+                                        )}
                                     </div>
                                 ) : (
                                     loggedUser?.role === "COMPANY" &&

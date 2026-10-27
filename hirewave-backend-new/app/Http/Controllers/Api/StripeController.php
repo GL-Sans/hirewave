@@ -3,9 +3,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\FrontendUrl;
+use App\Support\ProfileAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Stripe\Stripe;
 use Stripe\Checkout\Session;
 use Stripe\Webhook;
@@ -26,6 +26,10 @@ class StripeController extends Controller
         $worker = User::findOrFail($request->worker_id);
         if ($worker->role === 'COMPANY') {
             return response()->json(['message' => 'Profilo non sbloccabile'], 422);
+        }
+
+        if (ProfileAccess::isUnlocked($company->id, $worker->id)) {
+            return response()->json(['message' => 'Profilo già sbloccato'], 409);
         }
 
         $frontendUrl = FrontendUrl::resolve($request);
@@ -84,7 +88,9 @@ class StripeController extends Controller
 
         if (
             $session->payment_status !== 'paid' ||
-            (int) $session->metadata->company_id !== Auth::id()
+            (int) $session->metadata->company_id !== Auth::id() ||
+            // Una sessione vecchia non può rinnovare gratis uno sblocco scaduto
+            $session->created < now()->subDays(ProfileAccess::UNLOCK_DAYS)->timestamp
         ) {
             return response()->json(['unlocked' => false], 422);
         }
@@ -114,6 +120,9 @@ class StripeController extends Controller
 
         if ($event->type === 'checkout.session.completed') {
             $session = $event->data->object;
+            if ($session->created < now()->subDays(ProfileAccess::UNLOCK_DAYS)->timestamp) {
+                return response()->json(['status' => 'ignored']);
+            }
             $this->unlock($session->metadata->company_id, $session->metadata->worker_id);
         }
 
@@ -122,10 +131,6 @@ class StripeController extends Controller
 
     private function unlock($companyId, $workerId): void
     {
-        DB::table('unlocked_profiles')->insertOrIgnore([
-            'company_id' => $companyId,
-            'worker_id' => $workerId,
-            'unlocked_at' => now(),
-        ]);
+        ProfileAccess::unlock((int) $companyId, (int) $workerId);
     }
 }

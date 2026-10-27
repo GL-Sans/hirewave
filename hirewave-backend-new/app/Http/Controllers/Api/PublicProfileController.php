@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use App\Models\Post;
 use App\Models\Review;
+use App\Support\ProfileAccess;
+use Illuminate\Support\Facades\Auth;
 
 class PublicProfileController extends Controller
 {
@@ -41,29 +41,13 @@ class PublicProfileController extends Controller
         $isOwnProfile = $viewer->id === $worker->id;
         $isCompanyViewer = $viewer->role === 'COMPANY';
 
-        $unlocked = false;
+        $unlocked = $isCompanyViewer && ProfileAccess::isUnlocked($viewer->id, $worker->id);
 
-        if ($isCompanyViewer) {
-            $unlocked = DB::table('unlocked_profiles')
-                ->where('company_id', $viewer->id)
-                ->where('worker_id', $worker->id)
-                ->exists();
-        }
+        $canSeeIdentity = ProfileAccess::canSeeIdentity($viewer, $worker);
 
-        $canSeeFullName =
-            $isOwnProfile ||
-            ($isCompanyViewer && $unlocked) ||
-            $worker->role === 'COMPANY';
+        // Contatti: visibili se sbloccato, se il profilo è un'azienda o se il curriculum è pubblico
+        $canSeeContacts = $canSeeIdentity || $worker->curriculum_public;
 
-        $canSeeImage =
-            $isOwnProfile ||
-            ($isCompanyViewer && $unlocked) ||
-            $worker->role === 'COMPANY';
-
-        // Contatti: visibili se sbloccato o se il profilo è un'azienda
-        $canSeeContacts = $canSeeFullName || $worker->curriculum_public;
-
-        // REVIEWS + MEDIA
         $reviews = Review::where('worker_id', $worker->id)
             ->with('reviewer:id,first_name')
             ->latest()
@@ -71,13 +55,15 @@ class PublicProfileController extends Controller
 
         $average = round($reviews->avg('stars') ?? 0, 1);
 
+        $author = ProfileAccess::present($viewer, $worker);
+
         return response()->json([
             'user' => [
                 'id' => $worker->id,
                 'first_name' => $worker->first_name,
-                'last_name' => $canSeeFullName ? $worker->last_name : null,
+                'last_name' => $author['last_name'],
                 'role' => $worker->role,
-                'profile_image' => $canSeeImage ? $worker->profile_image : null,
+                'profile_image' => $author['profile_image'],
 
                 'description' => $worker->description,
                 'badge' => $worker->badge,
@@ -89,21 +75,25 @@ class PublicProfileController extends Controller
                 'cv' => $isOwnProfile ? $worker->cv : null,
 
                 'unlocked' => $unlocked,
+                'unlock_expires_at' => $unlocked
+                    ? ProfileAccess::unlockExpiresAt($viewer->id, $worker->id)
+                    : null,
                 // stesse regole di MessageController::canMessage
                 'can_contact' => !$isOwnProfile && (
                     !$isCompanyViewer ||
                     ($worker->role !== 'COMPANY' && $unlocked)
                 ),
+                'can_review' => ReviewController::canReview($viewer, $worker),
 
                 'rating_reputazionale_avg' => $average,
                 'rating_reputazionale_count' => $reviews->count(),
 
                 'curriculum_public' => $worker->curriculum_public,
-                // questi solo se curriculum è pubblico
                 'email' => $canSeeContacts ? $worker->email : null,
                 'phone' => $canSeeContacts ? $worker->phone : null,
-                'bio' => $worker->curriculum_public ? $worker->bio : null,
                 'city' => $canSeeContacts ? $worker->city : null,
+                // questi solo se curriculum è pubblico
+                'bio' => $worker->curriculum_public ? $worker->bio : null,
                 'country' => $worker->curriculum_public ? $worker->country : null,
                 'website' => $worker->curriculum_public ? $worker->website : null,
                 'years_experience' => $worker->curriculum_public ? $worker->years_experience : null,
@@ -115,25 +105,20 @@ class PublicProfileController extends Controller
 
             'reviews' => $reviews,
 
-            'posts' => $worker->posts->map(function ($post) use ($worker, $canSeeFullName, $canSeeImage) {
-                return array_merge($post->toArray(), [
-                    'user' => [
-                        'id' => $worker->id,
-                        'first_name' => $worker->first_name,
-                        'last_name' => $canSeeFullName ? $worker->last_name : null,
-                        'role' => $worker->role,
-                        'profile_image' => $canSeeImage ? $worker->profile_image : null,
-                    ]
-                ]);
-            }),
+            'posts' => $worker->posts->map(fn ($post) => array_merge($post->toArray(), ['user' => $author])),
         ]);
     }
 
     public function posts($id)
     {
-        return Post::with('user:id,first_name,last_name,role,profile_image,badge')
-            ->where('user_id', $id)
+        $viewer = Auth::user();
+        $owner = User::findOrFail($id);
+        $author = ProfileAccess::present($viewer, $owner);
+
+        // Stesso anonimato del profilo: prima restituiva sempre cognome e foto
+        return Post::where('user_id', $owner->id)
             ->latest()
-            ->get();
+            ->get()
+            ->map(fn ($post) => array_merge($post->toArray(), ['user' => $author]));
     }
 }

@@ -1,36 +1,30 @@
 <?php
 namespace App\Http\Controllers;
 use App\Models\User;
+use App\Support\ProfileAccess;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
     public function talents()
     {
-        $companyId = Auth::id();
-        $unlockedIds = DB::table('unlocked_profiles')
-            ->where('company_id', $companyId)
-            ->pluck('worker_id')
-            ->toArray();
+        $viewer = Auth::user();
+        $unlockedIds = ProfileAccess::unlockedIds($viewer);
 
         $talents = User::whereIn('role', ['WORKER', 'PRO'])
-            ->where('id', '!=', $companyId)
-            ->select('id', 'first_name', 'last_name', 'role', 'profile_image', 'badge', 'rating_tecnico', 'settore')
+            ->where('id', '!=', $viewer->id)
+            ->select('id', 'first_name', 'last_name', 'role', 'profile_image', 'badge', 'rating_tecnico', 'settore', 'skills', 'curriculum_public')
             ->get()
-            ->map(function ($user) use ($unlockedIds) {
-                $unlocked = in_array($user->id, $unlockedIds);
-                return [
-                    'id' => $user->id,
-                    'first_name' => $user->first_name,
-                    'last_name' => $unlocked ? $user->last_name : null,
-                    'role' => $user->role,
-                    'profile_image' => $user->profile_image,
-                    'badge' => $user->badge,
+            ->map(function ($user) use ($viewer, $unlockedIds) {
+                // Foto e cognome solo se sbloccato (prima la foto veniva sempre inviata)
+                $base = ProfileAccess::present($viewer, $user, $unlockedIds);
+                return array_merge($base, [
                     'rating_tecnico' => $user->rating_tecnico,
                     'settore' => $user->settore,
-                    'unlocked' => $unlocked,
-                ];
+                    // Stessa regola del profilo: skill visibili solo con curriculum pubblico
+                    'skills' => $user->curriculum_public ? ($user->skills ?? []) : [],
+                    'unlocked' => in_array($user->id, $unlockedIds, true),
+                ]);
             });
 
         return response()->json($talents);
