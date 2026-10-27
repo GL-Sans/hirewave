@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\FrontendUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -19,11 +20,11 @@ class SocialAuthController extends Controller
     /**
      * Invia l'utente alla pagina di login del provider.
      */
-    public function redirect(string $provider)
+    public function redirect(Request $request, string $provider)
     {
         $config = $this->providerConfig($provider);
 
-        return Socialite::driver($config['driver'])->redirect();
+        return $this->driver($request, $provider, $config)->redirect();
     }
 
     /**
@@ -32,10 +33,10 @@ class SocialAuthController extends Controller
     public function callback(Request $request, string $provider)
     {
         $config = $this->providerConfig($provider);
-        $frontend = rtrim(config('services.frontend.url'), '/');
+        $frontend = FrontendUrl::resolve($request);
 
         try {
-            $social = Socialite::driver($config['driver'])->user();
+            $social = $this->driver($request, $provider, $config)->user();
         } catch (\Throwable $e) {
             report($e);
             return redirect($frontend . '/?error=social');
@@ -142,5 +143,16 @@ class SocialAuthController extends Controller
     private function providerConfig(string $provider): array
     {
         return self::PROVIDERS[$provider] ?? abort(404);
+    }
+
+    /**
+     * Il callback torna sullo stesso indirizzo da cui è partito il login
+     * (deve essere registrato anche nella console di Google / LinkedIn).
+     */
+    private function driver(Request $request, string $provider, array $config)
+    {
+        $callback = FrontendUrl::resolve($request) . "/api/auth/{$provider}/callback";
+
+        return Socialite::driver($config['driver'])->redirectUrl($callback);
     }
 }

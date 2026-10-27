@@ -43,6 +43,8 @@ return [
 
     'frontend' => [
         'url' => env('FRONTEND_URL', 'http://localhost:5173'),
+        // Altri indirizzi da cui si apre il frontend, es. un tunnel HTTPS (separati da virgola)
+        'extra_urls' => env('FRONTEND_EXTRA_URLS', ''),
     ],
 
     'google' => [

@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\FrontendUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +28,7 @@ class StripeController extends Controller
             return response()->json(['message' => 'Profilo non sbloccabile'], 422);
         }
 
-        $frontendUrl = config('services.frontend.url');
+        $frontendUrl = FrontendUrl::resolve($request);
 
         // Modalità demo: senza chiavi Stripe lo sblocco è immediato
         if (!config('services.stripe.secret')) {
