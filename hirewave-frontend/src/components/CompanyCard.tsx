@@ -1,8 +1,4 @@
-import {
-    BookmarkIcon,
-    PaperAirplaneIcon,
-    UserPlusIcon,
-} from "@heroicons/react/24/outline";
+import { PaperAirplaneIcon } from "@heroicons/react/24/outline";
 import { Link, useNavigate } from "react-router-dom";
 import { profilePath } from "../utils/profilePath";
 
@@ -30,12 +26,13 @@ export default function CompanyCard(props: CompanyCardProps) {
             <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/30 to-black/10"></div>
 
             <div className="absolute top-3 right-3 flex flex-col gap-2">
+                {/* "Salva azienda": da riattivare quando esisterà la sezione salvati
                 <button
                     className="w-8! h-8! p-0! rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/40 transition"
                     onClick={(e) => e.preventDefault()}
                 >
                     <BookmarkIcon className="w-5 h-5" />
-                </button>
+                </button> */}
                 <button
                     className="w-8! h-8! p-0! rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/40 transition"
                     onClick={(e) => { e.preventDefault(); navigate(`/chat?to=${id}`); }}
@@ -51,12 +48,13 @@ export default function CompanyCard(props: CompanyCardProps) {
                             {firstName} {lastName}
                         </h2>
                     </div>
+                    {/* "Segui azienda": da riattivare quando sarà implementato
                     <button
                         className="w-10! h-10! p-0! shrink-0 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-xl hover:bg-blue-500 transition transform hover:scale-105 active:scale-95"
                         onClick={(e) => e.preventDefault()}
                     >
                         <UserPlusIcon className="w-5 h-5" />
-                    </button>
+                    </button> */}
                 </div>
             </div>
         </Link>

@@ -1,5 +1,4 @@
 import {
-    BookmarkIcon,
     PaperAirplaneIcon,
     UserPlusIcon,
 } from "@heroicons/react/24/solid";
@@ -84,12 +83,13 @@ export default function TalentCard(props: TalentCardProps) {
             )}
 
             <div className="absolute top-3 right-3 flex flex-col gap-2">
+                {/* "Salva profilo": da riattivare quando esisterà la sezione salvati
                 <button
                     className="w-8! h-8! p-0! rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition"
                     onClick={(e) => e.preventDefault()}
                 >
                     <BookmarkIcon className="w-5 h-5" />
-                </button>
+                </button> */}
                 <button
                     className="w-8! h-8! p-0! rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition"
                     onClick={(e) => { e.preventDefault(); navigate(isCompany && !unlocked ? talentPath : `/chat?to=${id}`); }}

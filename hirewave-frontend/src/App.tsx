@@ -20,6 +20,7 @@ import SettingsPage from "./pages/Settings";
 import CurriculumPage from "./pages/Curriculum";
 
 import OnboardingPage from "./pages/Onboarding";
+import NotFoundPage from "./pages/NotFound";
 
 function App() {
     return (
@@ -71,6 +72,7 @@ function App() {
                             />
                         </Route>
                     </Route>
+                    <Route path="*" element={<NotFoundPage />} />
                 </Routes>
             </BrowserRouter>
         </AuthProvider>

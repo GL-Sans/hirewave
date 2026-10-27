@@ -177,11 +177,12 @@ export default function FeedCard(props: FeedCardProps) {
                             </Link>
                         )}
 
+                        {/* "Suggerisci a un amico": da riattivare quando sarà implementato
                         {user?.role !== "COMPANY" && (
                             <button className="w-full border border-slate-200 text-slate-600 text-xs py-1.5 rounded-lg">
                                 Suggerisci a un amico
                             </button>
-                        )}
+                        )} */}
                     </div>
                 )}
             </div>
