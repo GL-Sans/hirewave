@@ -4,6 +4,7 @@ export type FeedUser = {
     last_name: string;
     role: "WORKER" | "PRO" | "COMPANY";
     profile_image?: string | null;
+    settore?: string | null;
 };
 
 export type FeedPost = {

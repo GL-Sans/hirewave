@@ -834,6 +834,12 @@ export default function ProfilePage() {
                                     role: post.user.role,
                                     profile_image: post.user.profile_image,
                                 }}
+                                post={post}
+                                onUpdated={(updated) =>
+                                    setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+                                }
+                                onDeleted={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
+                                onRemoved={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
                             />
                         ))}
                     </div>
