@@ -3,34 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Message;
 use App\Models\Review;
 use App\Models\User;
-use App\Support\ProfileAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class ReviewController extends Controller
 {
-    /**
-     * Si recensisce solo chi si è conosciuto sulla piattaforma:
-     * una conversazione in chat o un profilo sbloccato. Mai se stessi.
-     */
+    // Recensioni libere verso chiunque, tranne se stessi
     public static function canReview(User $reviewer, User $target): bool
     {
-        if ($reviewer->id === $target->id) {
-            return false;
-        }
-
-        if ($reviewer->role === 'COMPANY' && ProfileAccess::isUnlocked($reviewer->id, $target->id)) {
-            return true;
-        }
-
-        return Message::where(function ($q) use ($reviewer, $target) {
-            $q->where('sender_id', $reviewer->id)->where('receiver_id', $target->id);
-        })->orWhere(function ($q) use ($reviewer, $target) {
-            $q->where('sender_id', $target->id)->where('receiver_id', $reviewer->id);
-        })->exists();
+        return $reviewer->id !== $target->id;
     }
 
     public function store(Request $request, $workerId)
@@ -44,7 +27,7 @@ class ReviewController extends Controller
 
         if (!self::canReview(Auth::user(), $target)) {
             return response()->json([
-                'message' => 'Puoi recensire solo utenti con cui hai avuto un contatto.',
+                'message' => 'Non puoi recensire il tuo profilo.',
             ], 403);
         }
 

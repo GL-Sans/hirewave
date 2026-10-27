@@ -32,7 +32,7 @@ class OnboardingController extends Controller
         ];
 
         if ($isCompany) {
-            // Il rating tecnico (istruzione/esperienza) riguarda solo i candidati
+            // Il rating tecnico non si calcola per le aziende (la colonna vuole un valore: resta 0)
             $data['dimensione_azienda'] = $request->dimensione_azienda;
             $data['livello_istruzione'] = null;
             $data['rating_tecnico'] = 0;
@@ -51,7 +51,7 @@ class OnboardingController extends Controller
 
         return response()->json([
             'message' => 'Onboarding completato',
-            'rating_tecnico' => $data['rating_tecnico'],
+            'rating_tecnico' => $isCompany ? null : $data['rating_tecnico'],
             'badge' => 'grigio',
             'user' => $user,
         ]);

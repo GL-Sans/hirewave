@@ -68,7 +68,8 @@ class PublicProfileController extends Controller
                 'description' => $worker->description,
                 'badge' => $worker->badge,
 
-                'rating_tecnico' => $worker->rating_tecnico ?? 0,
+                // Il rating tecnico non esiste per le aziende
+                'rating_tecnico' => $worker->role === 'COMPANY' ? null : ($worker->rating_tecnico ?? 0),
                 'rating_reputazionale' => $worker->rating_reputazionale ?? 0,
 
                 'settore' => $worker->settore,
