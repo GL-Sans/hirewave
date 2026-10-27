@@ -15,7 +15,9 @@ class FeedController extends Controller
     public function index(Request $request)
     {
         $viewer = Auth::user();
-        $search = $request->query('q');
+        // Testo limitato e caratteri jolly di LIKE (% e _) trattati come testo normale
+        $search = mb_substr(trim((string) $request->query('q', '')), 0, 100);
+        $search = $search === '' ? null : addcslashes($search, '\\%_');
 
         $unlockedIds = ProfileAccess::unlockedIds($viewer);
 

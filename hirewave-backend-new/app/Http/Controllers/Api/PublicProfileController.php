@@ -19,24 +19,13 @@ class PublicProfileController extends Controller
             $q->latest();
         }]);
 
-        if (preg_match('/^(\d+)(-|$)/', (string) $name, $m)) {
-            // Accesso per id, con o senza nome: "9" oppure "9-giorgio-sansini"
-            $worker = $query->where('id', (int) $m[1])->firstOrFail();
-        } else {
-            // Accesso per slug first_name-last_name
-            $parts = explode('-', $name, 2);
-
-            if (count($parts) < 2) {
-                abort(404);
-            }
-
-            [$firstName, $lastName] = $parts;
-
-            $worker = $query
-                ->where('first_name', ucfirst($firstName))
-                ->where('last_name', ucfirst($lastName))
-                ->firstOrFail();
+        // Solo per id ("9" oppure "9-giorgio-sansini"). La vecchia ricerca per
+        // nome-cognome è stata tolta: permetteva di indovinare il cognome di un
+        // lavoratore non sbloccato (se l'indirizzo rispondeva, il nome era giusto).
+        if (!preg_match('/^(\d+)(-|$)/', (string) $name, $m)) {
+            abort(404);
         }
+        $worker = $query->where('id', (int) $m[1])->firstOrFail();
 
         $isOwnProfile = $viewer->id === $worker->id;
         $isCompanyViewer = $viewer->role === 'COMPANY';

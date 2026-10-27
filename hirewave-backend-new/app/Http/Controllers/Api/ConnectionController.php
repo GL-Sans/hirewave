@@ -56,6 +56,17 @@ class ConnectionController extends Controller
             'updated_at' => now(),
         ]);
 
+        // Una sola notifica per follower ogni 24 ore: premendo Segui/Smetti di seguire
+        // a ripetizione non si può tempestare l'azienda di notifiche
+        $recentlyNotified = $user->notifications()
+            ->where('data->kind', 'follow')
+            ->where('data->follower_id', $me->id)
+            ->where('created_at', '>=', now()->subDay())
+            ->exists();
+        if ($recentlyNotified) {
+            return response()->json(['followed' => true]);
+        }
+
         // L'azienda vede il nuovo follower con lo stesso anonimato del resto della piattaforma
         $shown = ProfileAccess::present($user, $me);
         $user->notify(new HireWaveNotification(
@@ -63,6 +74,7 @@ class ConnectionController extends Controller
             'Hai un nuovo follower',
             trim($shown['first_name'] . ' ' . ($shown['last_name'] ?? '')) . ' segue la tua azienda e riceverà i tuoi nuovi annunci.',
             '/profile/' . $me->id,
+            ['follower_id' => $me->id],
         ));
 
         return response()->json(['followed' => true]);

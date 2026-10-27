@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\FrontendUrl;
+use App\Support\SecurityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -60,10 +61,26 @@ class SocialAuthController extends Controller
             $user = User::where('email', $email)->first();
 
             if ($user) {
-                $user->forceFill([
+                $fill = [
                     $config['column'] => $providerId,
                     'email_verified_at' => $user->email_verified_at ?? now(),
-                ])->save();
+                ];
+
+                // Email mai verificata: l'account potrebbe essere stato creato da
+                // qualcun altro con questa email per "aspettare" la vittima. La
+                // password esistente viene annullata (le sessioni aperte con essa
+                // decadono) e il vero proprietario ne imposta una dalle Impostazioni.
+                if ($user->email_verified_at === null) {
+                    $fill['password'] = Str::random(64);
+                    $fill['has_password'] = false;
+                    $fill['remember_token'] = Str::random(60);
+                    SecurityLog::record('account_claimed_by_social', [
+                        'user_id' => $user->id,
+                        'provider' => $provider,
+                    ]);
+                }
+
+                $user->forceFill($fill)->save();
             }
         }
 
@@ -120,15 +137,16 @@ class SocialAuthController extends Controller
             ], 409);
         }
 
-        $user = User::create([
-            'first_name' => $pending['first_name'],
-            'last_name' => $pending['last_name'],
+        $user = new User([
+            'first_name' => mb_substr($pending['first_name'], 0, 60),
+            'last_name' => mb_substr($pending['last_name'], 0, 60),
             'email' => $pending['email'],
-            'password' => Str::random(40),
-            'role' => $data['role'],
+            'password' => Str::random(64),
         ]);
 
+        // Il ruolo non è assegnabile in massa: si imposta esplicitamente
         $user->forceFill([
+            'role' => $data['role'],
             $pending['column'] => $pending['provider_id'],
             'email_verified_at' => now(),
             // Password casuale: dalle Impostazioni potrà impostarne una propria

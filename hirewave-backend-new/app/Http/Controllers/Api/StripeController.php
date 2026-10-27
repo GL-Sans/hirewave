@@ -4,6 +4,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\FrontendUrl;
 use App\Support\ProfileAccess;
+use App\Support\SecurityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Stripe\Stripe;
@@ -34,8 +35,13 @@ class StripeController extends Controller
 
         $frontendUrl = FrontendUrl::resolve($request);
 
-        // Modalità demo: senza chiavi Stripe lo sblocco è immediato
         if (!config('services.stripe.secret')) {
+            // Modalità demo SOLO in locale: in produzione, una chiave mancante
+            // avrebbe reso gli sblocchi gratuiti per tutti
+            if (!app()->environment('local')) {
+                report(new \RuntimeException('STRIPE_SECRET mancante: sblocchi disattivati'));
+                return response()->json(['message' => 'Pagamenti momentaneamente non disponibili'], 503);
+            }
             $this->unlock($company->id, $worker->id);
             return response()->json(['url' => $frontendUrl . '/talents?unlocked=' . $worker->id]);
         }
@@ -107,15 +113,21 @@ class StripeController extends Controller
     {
         $payload = $request->getContent();
         $sig = $request->header('Stripe-Signature');
+        $secret = config('services.stripe.webhook_secret');
+
+        // Senza segreto la firma si verificherebbe con chiave vuota, che chiunque
+        // può calcolare: un finto "pagamento completato" sbloccherebbe profili gratis
+        if (empty($secret) || empty($sig)) {
+            SecurityLog::record('stripe_webhook_rejected', ['reason' => empty($secret) ? 'segreto non configurato' : 'firma mancante']);
+            return response()->json(['error' => 'Webhook non valido'], 400);
+        }
 
         try {
-            $event = Webhook::constructEvent(
-                $payload,
-                $sig,
-                config('services.stripe.webhook_secret')
-            );
+            $event = Webhook::constructEvent($payload, $sig, $secret);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 400);
+            SecurityLog::record('stripe_webhook_rejected', ['reason' => 'firma non valida']);
+            // Nessun dettaglio dell'errore all'esterno
+            return response()->json(['error' => 'Webhook non valido'], 400);
         }
 
         if ($event->type === 'checkout.session.completed') {

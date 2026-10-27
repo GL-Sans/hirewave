@@ -22,13 +22,14 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
+    // Solo dati che l'utente può scegliere. Ruolo, badge, rating, file e stati
+    // interni NON sono qui: si impostano esplicitamente con forceFill nei
+    // controller, così nessuna richiesta può modificarli per errore.
     protected $fillable = [
         'first_name',
         'last_name',
         'email',
         'password',
-        'role',
-        'profile_image',
         'bio',
         'city',
         'country',
@@ -41,7 +42,6 @@ class User extends Authenticatable
         'skills',
         'languages',
         'curriculum_public',
-        'cv',
         'description',
         'settore',
         'ral_aspettativa',
@@ -49,12 +49,7 @@ class User extends Authenticatable
         'dimensione_azienda',
         'anni_esperienza',
         'certificazioni',
-        'rating_tecnico',
-        'rating_reputazionale',
-        'badge',
-        'onboarding_completato',
         'notifications_enabled',
-        'has_password',
     ];
 
     /**
@@ -65,6 +60,9 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        // Identificativi degli account social: non servono al frontend
+        'google_id',
+        'linkedin_id',
     ];
 
     /**

@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rules\Password;
+use App\Support\SecurityLog;
 
 /** Funzioni della pagina Impostazioni */
 class AccountController extends Controller
@@ -36,10 +38,12 @@ class AccountController extends Controller
 
         $request->validate([
             'current_password' => $user->has_password ? 'required|string' : 'nullable',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', 'confirmed', Password::defaults()],
         ]);
 
         if ($user->has_password && !Hash::check($request->current_password, $user->password)) {
+            // Può indicare una sessione rubata che prova a prendersi l'account
+            SecurityLog::record('password_change_failed');
             return response()->json([
                 'message' => 'La password attuale non è corretta.',
                 'errors' => ['current_password' => ['La password attuale non è corretta.']],
@@ -49,7 +53,14 @@ class AccountController extends Controller
         $user->forceFill([
             'password' => $request->password, // cast 'hashed' nel modello
             'has_password' => true,
+            'remember_token' => \Illuminate\Support\Str::random(60),
         ])->save();
+
+        // Le altre sessioni (con la vecchia password) vengono chiuse da AuthenticateSession;
+        // questa resta valida aggiornando l'impronta della password salvata in sessione
+        if ($request->hasSession()) {
+            $request->session()->put('password_hash_web', $user->getAuthPassword());
+        }
 
         return response()->json(['message' => 'Password aggiornata.']);
     }
@@ -90,6 +101,7 @@ class AccountController extends Controller
         if ($user->has_password) {
             $request->validate(['password' => 'required|string']);
             if (!Hash::check($request->password, $user->password)) {
+                SecurityLog::record('account_delete_failed');
                 return response()->json([
                     'message' => 'Password non corretta.',
                     'errors' => ['password' => ['Password non corretta.']],
@@ -105,6 +117,14 @@ class AccountController extends Controller
             ...Post::where('user_id', $user->id)->whereNotNull('image')->pluck('image')->map(fn ($p) => ['public', $p])->all(),
         ], fn ($f) => !empty($f[1]));
 
+        // Logout PRIMA di cancellare: il logout rigenera il remember token e salva
+        // l'utente, e su un utente già cancellato quel salvataggio lo ricreerebbe
+        Auth::guard('web')->logout();
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
+
         DB::transaction(function () use ($user) {
             // unlocked_profiles non ha cancellazione a cascata
             DB::table('unlocked_profiles')
@@ -118,10 +138,6 @@ class AccountController extends Controller
         foreach ($files as [$disk, $path]) {
             Storage::disk($disk)->delete($path);
         }
-
-        Auth::guard('web')->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
 
         return response()->json(['deleted' => true]);
     }

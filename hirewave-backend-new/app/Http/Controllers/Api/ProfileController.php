@@ -19,18 +19,19 @@ class ProfileController extends Controller
     public function uploadImage(Request $request)
     {
         $request->validate([
-            'image' => 'required|image|max:10240', // 10MB max
+            // Formati espliciti (niente SVG) e dimensioni massime in pixel
+            'image' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:10240|dimensions:max_width=8000,max_height=8000',
         ]);
 
         $user = \App\Models\User::find(Auth::id());
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('profile', 'public');
-            
-            // Delete old image if needed (optional, but good practice)
-            // if ($user->profile_image) {
-            //     Storage::disk('public')->delete($user->profile_image);
-            // }
+
+            // La foto precedente non deve restare raggiungibile da chi ne conosce l'indirizzo
+            if ($user->profile_image) {
+                Storage::disk('public')->delete($user->profile_image);
+            }
 
             $user->profile_image = $path;
             $user->save();
@@ -45,7 +46,8 @@ class ProfileController extends Controller
     public function uploadCv(Request $request)
     {
         $request->validate([
-            'cv' => 'required|file|mimes:pdf,doc,docx|max:10240', // 10MB max
+            // "mimes" ricava il tipo dal contenuto reale del file, non dall'estensione
+            'cv' => 'required|file|mimes:pdf,doc,docx|max:10240',
         ]);
 
         $user = Auth::user();
@@ -53,10 +55,11 @@ class ProfileController extends Controller
         if ($request->hasFile('cv')) {
             // Store on local disk (not public) to prevent direct URL access
             $path = $request->file('cv')->store('cvs', 'local');
-            
-            // if ($user->cv) {
-            //     Storage::disk('local')->delete($user->cv);
-            // }
+
+            // Il CV sostituito è un dato personale da non conservare
+            if ($user->cv) {
+                Storage::disk('local')->delete($user->cv);
+            }
 
             $user->cv = $path;
             $user->save();

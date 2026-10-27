@@ -13,13 +13,13 @@ class OnboardingController extends Controller
         $isCompany = $user->role === 'COMPANY';
 
         $request->validate([
-            'settore' => 'required|string',
-            'ral_aspettativa' => 'required|string',
+            'settore' => 'required|string|max:100',
+            'ral_aspettativa' => 'required|string|max:100',
             // Lavoratori: titolo di studio. Aziende: dimensione aziendale
             'livello_istruzione' => $isCompany ? 'nullable|string' : 'required|in:licenza_media,diploma,laurea_triennale,laurea_magistrale',
             'dimensione_azienda' => $isCompany ? 'required|in:micro,piccola,media,grande' : 'nullable',
             'anni_esperienza' => 'required|integer|min:0|max:50',
-            'certificazioni' => 'nullable|string',
+            'certificazioni' => 'nullable|string|max:500',
         ]);
 
         $data = [
@@ -47,7 +47,8 @@ class OnboardingController extends Controller
             $data['years_experience'] = $request->anni_esperienza;
         }
 
-        $user->update($data);
+        // forceFill: rating, badge e stato dell'onboarding non sono assegnabili in massa
+        $user->forceFill($data)->save();
 
         return response()->json([
             'message' => 'Onboarding completato',

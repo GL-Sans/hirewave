@@ -20,12 +20,13 @@ class PostController extends Controller
     {
         return [
             'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'description' => 'nullable|string|max:5000',
             'location' => 'nullable|string|max:255',
             'contract_type' => 'nullable|string|in:Contratto a tempo indeterminato,Contratto a tempo determinato,Partita IVA,Apprendistato,Part-time,A chiamata',
-            'budget' => 'nullable|integer|min:0',
+            'budget' => 'nullable|integer|min:0|max:10000000',
             'budget_type' => 'nullable|string|in:Ora,Mensile,Fisso',
-            'image' => 'nullable|image|max:10240', // 10MB max
+            // Formati espliciti (niente SVG) e dimensioni massime in pixel
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:10240|dimensions:max_width=8000,max_height=8000',
         ];
     }
 

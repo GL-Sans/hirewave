@@ -17,9 +17,10 @@ class CurriculumController extends Controller
             'bio'              => 'nullable|string|max:1000',
             'city'             => 'nullable|string|max:100',
             'country'          => 'nullable|string|max:100',
-            'website'          => 'nullable|url|max:255',
-            'phone'            => 'nullable|string|max:20',
-            'birth_date'       => 'nullable|date',
+            // Solo link web: niente javascript:, data: e simili
+            'website'          => 'nullable|url:http,https|max:255',
+            'phone'            => ['nullable', 'string', 'max:20', 'regex:/^[0-9+ ().\/-]+$/'],
+            'birth_date'       => 'nullable|date|before:today|after:1900-01-01',
             'years_experience' => 'nullable|integer|min:0|max:60',
             'contract_type'    => 'nullable|string|max:100',
             'available'        => 'nullable|boolean',
@@ -43,7 +44,14 @@ class CurriculumController extends Controller
             }
         }
 
-        $user->update($fields);
+        // Il rating è calcolato qui, non arriva dalla richiesta: forceFill solo per lui
+        $rating = $fields['rating_tecnico'] ?? null;
+        unset($fields['rating_tecnico']);
+        $user->fill($fields);
+        if ($rating !== null) {
+            $user->forceFill(['rating_tecnico' => $rating]);
+        }
+        $user->save();
 
         return response()->json(['user' => $user]);
     }
