@@ -11,7 +11,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../context/AuthContext";
 import { profilePath } from "../utils/profilePath";
-import { sharePost } from "../utils/share";
+import ShareSheet from "./ShareSheet";
 import axiosClient from "../api/axiosClient";
 import type { FeedPost } from "../types/Feed";
 import PostEditModal from "./PostEditModal";
@@ -74,6 +74,7 @@ export default function FeedCard(props: FeedCardProps) {
     const [menuOpen, setMenuOpen] = useState(false);
     const [editing, setEditing] = useState(false);
     const [reporting, setReporting] = useState(false);
+    const [sharing, setSharing] = useState(false);
     const [hidden, setHidden] = useState<null | "hidden" | "reported">(null);
     const [feedback, setFeedback] = useState("");
     const menuRef = useRef<HTMLDivElement>(null);
@@ -110,10 +111,10 @@ export default function FeedCard(props: FeedCardProps) {
 
     const authorPath = profilePath(author);
 
-    const handleShare = async () => {
+    // Apre la tendina di condivisione (WhatsApp, SMS, email, social, copia link…)
+    const handleShare = () => {
         setMenuOpen(false);
-        const result = await sharePost(postId, title);
-        if (result === "copied") setFeedback("Link copiato negli appunti");
+        setSharing(true);
     };
 
     const handleHide = async () => {
@@ -349,6 +350,9 @@ export default function FeedCard(props: FeedCardProps) {
 
             {editing && post && onUpdated && (
                 <PostEditModal post={post} onClose={() => setEditing(false)} onSaved={onUpdated} />
+            )}
+            {sharing && (
+                <ShareSheet postId={postId} title={title} onClose={() => setSharing(false)} />
             )}
             {reporting && (
                 <ReportModal postId={postId} onClose={() => setReporting(false)} onReported={() => setHidden("reported")} />
