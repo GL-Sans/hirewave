@@ -14,7 +14,7 @@ class PostController extends Controller
         $user = Auth::user();
 
         // Regola chiara: company → job, altri → service
-        $type = $user->role === 'company' ? 'job' : 'service';
+        $type = $user->role === 'COMPANY' ? 'job' : 'service';
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
