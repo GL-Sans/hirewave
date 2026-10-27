@@ -7,6 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import axiosClient from "../api/axiosClient";
+import { profilePath } from "../utils/profilePath";
 
 type TalentCardProps = {
     id: number;
@@ -33,9 +34,7 @@ export default function TalentCard(props: TalentCardProps) {
     const [loading, setLoading] = useState(false);
 
     // Se il cognome è nascosto (profilo non sbloccato) uso l'id
-    const profilePath = lastName
-        ? `/profile/${firstName.toLowerCase()}-${lastName.toLowerCase()}`
-        : `/profile/${id}`;
+    const talentPath = profilePath({ id, first_name: firstName, last_name: lastName });
 
     const handleUnlock = async (e: React.MouseEvent) => {
         e.preventDefault();
@@ -53,7 +52,7 @@ export default function TalentCard(props: TalentCardProps) {
 
     return (
         <Link
-            to={profilePath}
+            to={talentPath}
             className="block relative rounded-[20px] group aspect-square border border-slate-200 shadow-md overflow-hidden"
         >
             {imageUrl ? (
@@ -93,7 +92,7 @@ export default function TalentCard(props: TalentCardProps) {
                 </button>
                 <button
                     className="w-8! h-8! p-0! rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition"
-                    onClick={(e) => { e.preventDefault(); navigate(isCompany && !unlocked ? profilePath : `/chat?to=${id}`); }}
+                    onClick={(e) => { e.preventDefault(); navigate(isCompany && !unlocked ? talentPath : `/chat?to=${id}`); }}
                 >
                     <PaperAirplaneIcon className="w-5 h-5 -rotate-45 -mt-0.5 ml-0.5" />
                 </button>

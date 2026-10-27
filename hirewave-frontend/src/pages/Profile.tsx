@@ -5,6 +5,7 @@ import axiosClient from "../api/axiosClient";
 import FeedCard from "../components/FeedCard";
 import type { FeedPost } from "../types/Feed";
 import { useAuth } from "../context/AuthContext";
+import { profileIdFromParam, profilePath } from "../utils/profilePath";
 
 export default function ProfilePage() {
     const { name } = useParams();
@@ -21,16 +22,13 @@ export default function ProfilePage() {
     const cvInputRef = useRef<HTMLInputElement>(null);
     const { user: loggedUser, fetchUser, logout } = useAuth();
 
-    const loggedUserSlug = loggedUser
-        ? `${loggedUser.first_name.toLowerCase()}-${loggedUser.last_name.toLowerCase()}`
-        : null;
-
-    const isMyProfile = !name || name === loggedUserSlug;
+    const isMyProfile = !name || profileIdFromParam(name) === loggedUser?.id;
 
     useEffect(() => {
         const fetchProfile = async () => {
+            setLoading(true);
             try {
-                if (name && name !== loggedUserSlug) {
+                if (!isMyProfile) {
                     const res = await axiosClient.get(`/api/profile/${name}`);
                     setUser(res.data.user);
                     setPosts(res.data.posts);
@@ -183,10 +181,6 @@ export default function ProfilePage() {
         ? `/storage/${user.profile_image}`
         : null;
 
-    const userSlug = user.last_name
-        ? `${user.first_name.toLowerCase()}-${user.last_name.toLowerCase()}`
-        : null;
-
     return (
         <div className="max-w-4xl mx-auto space-y-6">
             {/* Header / Cover Area */}
@@ -280,7 +274,7 @@ export default function ProfilePage() {
                                 {user.role}
                             </p>
                             <Link
-                                to={`/profile/${userSlug ?? user.id}/curriculum`}
+                                to={`${profilePath(user)}/curriculum`}
                                 className="text-sm text-blue-600 font-medium hover:underline"
                             >
                                 Curriculum

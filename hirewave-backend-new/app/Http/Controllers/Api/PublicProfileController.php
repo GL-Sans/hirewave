@@ -19,9 +19,9 @@ class PublicProfileController extends Controller
             $q->latest();
         }]);
 
-        if (ctype_digit((string) $name)) {
-            // Accesso per id (profili con cognome nascosto)
-            $worker = $query->where('id', (int) $name)->firstOrFail();
+        if (preg_match('/^(\d+)(-|$)/', (string) $name, $m)) {
+            // Accesso per id, con o senza nome: "9" oppure "9-giorgio-sansini"
+            $worker = $query->where('id', (int) $m[1])->firstOrFail();
         } else {
             // Accesso per slug first_name-last_name
             $parts = explode('-', $name, 2);

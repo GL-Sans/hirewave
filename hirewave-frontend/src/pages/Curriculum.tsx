@@ -2,6 +2,7 @@ import { useParams, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import axiosClient from "../api/axiosClient";
+import { profileIdFromParam } from "../utils/profilePath";
 
 export default function CurriculumPage() {
     const { name } = useParams();
@@ -25,11 +26,7 @@ export default function CurriculumPage() {
         languages: "",
     });
 
-    const loggedUserSlug = loggedUser
-        ? `${loggedUser.first_name.toLowerCase()}-${loggedUser.last_name.toLowerCase()}`
-        : null;
-
-    const isMyProfile = !name || name === loggedUserSlug;
+    const isMyProfile = !name || profileIdFromParam(name) === loggedUser?.id;
 
     useEffect(() => {
         const fetchProfile = async () => {

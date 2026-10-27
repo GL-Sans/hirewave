@@ -4,6 +4,7 @@ import {
     UserPlusIcon,
 } from "@heroicons/react/24/outline";
 import { Link, useNavigate } from "react-router-dom";
+import { profilePath } from "../utils/profilePath";
 
 type CompanyCardProps = {
     id: number;
@@ -18,7 +19,7 @@ export default function CompanyCard(props: CompanyCardProps) {
 
     return (
         <Link
-            to={`/profile/${firstName.toLowerCase()}-${lastName.toLowerCase()}`}
+            to={profilePath({ id, first_name: firstName, last_name: lastName })}
             className="block relative h-[320px] rounded-[20px] overflow-hidden shadow-sm group"
         >
             <img

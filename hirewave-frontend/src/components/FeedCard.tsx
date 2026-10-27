@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { UserIcon } from "@heroicons/react/24/solid";
 import { useAuth } from "../context/AuthContext";
+import { profilePath } from "../utils/profilePath";
 
 type FeedCardProps = {
     postId: number;
@@ -62,10 +63,7 @@ export default function FeedCard(props: FeedCardProps) {
     const hideCTA =
         isOwnPost || hideCompanyToCompany || hideProToPro;
 
-    // Se il cognome è nascosto uso l'id per il link al profilo
-    const authorPath = author.last_name
-        ? `/profile/${author.first_name.toLowerCase()}-${author.last_name.toLowerCase()}`
-        : `/profile/${author.id}`;
+    const authorPath = profilePath(author);
 
     return (
         <article className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col h-full">
