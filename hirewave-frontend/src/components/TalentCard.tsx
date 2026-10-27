@@ -1,13 +1,17 @@
 import {
+    BookmarkIcon as BookmarkSolidIcon,
+    CheckIcon,
     PaperAirplaneIcon,
     UserPlusIcon,
 } from "@heroicons/react/24/solid";
+import { BookmarkIcon } from "@heroicons/react/24/outline";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import axiosClient from "../api/axiosClient";
 import { profilePath } from "../utils/profilePath";
 
+// Card unica per le pagine Talenti e Aziende
 type TalentCardProps = {
     id: number;
     firstName: string;
@@ -17,23 +21,38 @@ type TalentCardProps = {
     skills?: string[];
     badge?: string;
     unlocked?: boolean;
+    saved?: boolean;
+    followed?: boolean;
+    onSavedChange?: (id: number, saved: boolean) => void;
 };
 
 function formatRole(role: string) {
-    if (role === "PRO") return "Pro";
+    if (role === "PRO") return "Professionista";
     if (role === "WORKER") return "Lavoratore";
+    if (role === "COMPANY") return "Azienda";
     return role;
 }
 
+const iconButton =
+    "w-8! h-8! p-0! border-0! rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition";
+
 export default function TalentCard(props: TalentCardProps) {
-    const { id, firstName, lastName, role, imageUrl, skills = [], badge, unlocked } = props;
+    const { id, firstName, lastName, role, imageUrl, skills = [], badge, unlocked, onSavedChange } = props;
     const navigate = useNavigate();
     const { user } = useAuth();
-    const isCompany = user?.role === "COMPANY";
+    const isCompanyViewer = user?.role === "COMPANY";
+    const isCompanyCard = role === "COMPANY";
     const [loading, setLoading] = useState(false);
+    const [saved, setSaved] = useState(!!props.saved);
+    const [followed, setFollowed] = useState(!!props.followed);
 
     // Se il cognome è nascosto (profilo non sbloccato) uso l'id
     const talentPath = profilePath({ id, first_name: firstName, last_name: lastName });
+
+    // Stesse regole della chat: le aziende scrivono ai talenti sbloccati, non ad altre aziende
+    const canChat = isCompanyViewer ? !isCompanyCard : true;
+    const showUnlock = isCompanyViewer && !isCompanyCard;
+    const showFollow = !isCompanyViewer && isCompanyCard;
 
     const handleUnlock = async (e: React.MouseEvent) => {
         e.preventDefault();
@@ -48,6 +67,33 @@ export default function TalentCard(props: TalentCardProps) {
             setLoading(false);
         }
     };
+
+    const handleSave = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        setSaved((s) => !s); // aggiornamento immediato, poi conferma dal server
+        try {
+            const res = await axiosClient.post(`/api/saved/${id}`);
+            setSaved(res.data.saved);
+            onSavedChange?.(id, res.data.saved);
+        } catch {
+            setSaved((s) => !s);
+        }
+    };
+
+    const handleFollow = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const res = await axiosClient.post(`/api/follow/${id}`);
+            setFollowed(res.data.followed);
+        } catch (err: any) {
+            alert(err?.response?.data?.message ?? "Operazione non riuscita.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const SaveIcon = saved ? BookmarkSolidIcon : BookmarkIcon;
 
     return (
         <Link
@@ -82,29 +128,34 @@ export default function TalentCard(props: TalentCardProps) {
                 </div>
             )}
 
-            <div className="absolute top-3 right-3 flex flex-col gap-2">
-                {/* "Salva profilo": da riattivare quando esisterà la sezione salvati
+            <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
                 <button
-                    className="w-8! h-8! p-0! rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition"
-                    onClick={(e) => e.preventDefault()}
+                    className={iconButton}
+                    onClick={handleSave}
+                    aria-label={saved ? "Rimuovi dai salvati" : "Salva"}
+                    title={saved ? "Rimuovi dai salvati" : "Salva"}
                 >
-                    <BookmarkIcon className="w-5 h-5" />
-                </button> */}
-                <button
-                    className="w-8! h-8! p-0! rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition"
-                    onClick={(e) => { e.preventDefault(); navigate(isCompany && !unlocked ? talentPath : `/chat?to=${id}`); }}
-                >
-                    <PaperAirplaneIcon className="w-5 h-5 -rotate-45 -mt-0.5 ml-0.5" />
+                    <SaveIcon className="w-5 h-5" />
                 </button>
+                {canChat && (
+                    <button
+                        className={iconButton}
+                        onClick={(e) => { e.preventDefault(); navigate(isCompanyViewer && !unlocked ? talentPath : `/chat?to=${id}`); }}
+                        aria-label="Scrivi un messaggio"
+                        title="Scrivi un messaggio"
+                    >
+                        <PaperAirplaneIcon className="w-5 h-5 -rotate-45 -mt-0.5 ml-0.5" />
+                    </button>
+                )}
             </div>
 
             <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
                 <div className="flex items-end justify-between">
-                    <div className="flex-1 pr-2">
+                    <div className="flex-1 min-w-0 pr-2">
                         <h2 className={`text-sm font-bold tracking-tight leading-tight mb-0.5 truncate ${imageUrl ? "text-white" : "text-slate-800"}`}>
                             {firstName ?? "—"} {lastName ?? ""}
                         </h2>
-                        <p className={`text-[11px] font-medium mb-2 capitalize ${imageUrl ? "text-slate-300" : "text-slate-500"}`}>
+                        <p className={`text-[11px] font-medium mb-2 ${imageUrl ? "text-slate-300" : "text-slate-500"}`}>
                             {formatRole(role)}
                         </p>
                         <div className="flex flex-wrap gap-1">
@@ -118,9 +169,9 @@ export default function TalentCard(props: TalentCardProps) {
                             ))}
                         </div>
                     </div>
-                    {isCompany && (
+                    {showUnlock && (
                         <button
-                            className={`w-10! h-10! p-0! shrink-0 rounded-full flex items-center justify-center text-white shadow-xl transition transform hover:scale-105 active:scale-95 disabled:opacity-50 ${
+                            className={`w-10! h-10! p-0! border-0! shrink-0 rounded-full flex items-center justify-center text-white shadow-xl transition transform hover:scale-105 active:scale-95 disabled:opacity-50 ${
                                 unlocked ? "bg-green-500 hover:bg-green-400" : "bg-blue-600 hover:bg-blue-500"
                             }`}
                             onClick={unlocked ? (e) => e.preventDefault() : handleUnlock}
@@ -131,6 +182,24 @@ export default function TalentCard(props: TalentCardProps) {
                                 ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 : unlocked
                                     ? <span className="text-sm">✓</span>
+                                    : <UserPlusIcon className="w-4 h-4" />
+                            }
+                        </button>
+                    )}
+                    {showFollow && (
+                        <button
+                            className={`w-10! h-10! p-0! border-0! shrink-0 rounded-full flex items-center justify-center text-white shadow-xl transition transform hover:scale-105 active:scale-95 disabled:opacity-50 ${
+                                followed ? "bg-green-500 hover:bg-green-400" : "bg-blue-600 hover:bg-blue-500"
+                            }`}
+                            onClick={handleFollow}
+                            disabled={loading}
+                            title={followed ? "Smetti di seguire" : "Segui: ricevi i nuovi annunci"}
+                            aria-label={followed ? "Smetti di seguire" : "Segui azienda"}
+                        >
+                            {loading
+                                ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                : followed
+                                    ? <CheckIcon className="w-4 h-4" />
                                     : <UserPlusIcon className="w-4 h-4" />
                             }
                         </button>
