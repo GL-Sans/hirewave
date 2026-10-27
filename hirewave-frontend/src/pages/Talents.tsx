@@ -13,20 +13,17 @@ type Talent = {
     unlocked?: boolean;
     settore?: string;
     rating_tecnico?: number;
+    skills?: string[];
 };
-
-const MOCK_SKILLS = [
-    ["PROJECT MANAGEMENT", "LEAN"],
-    ["SEO", "DIGITAL STRATEGY"],
-    ["REACT", "TYPESCRIPT"],
-    ["UI/UX", "FIGMA"],
-    ["SALES", "B2B"],
-];
 
 const RUOLI = ["Tutti", "WORKER", "PRO"];
 const SETTORI = ["Tutti i settori", "Ristorazione / HoReCa", "Turismo / Hospitality", "Eventi", "Logistica", "IT / Digitale"];
 
-function getSkills(id: number) { return MOCK_SKILLS[id % MOCK_SKILLS.length]; }
+// Skill reali dal curriculum (solo se pubblico); altrimenti il settore dell'onboarding
+function getSkills(t: Talent) {
+    if (t.skills?.length) return t.skills.slice(0, 2).map(s => s.toUpperCase());
+    return t.settore ? [t.settore.toUpperCase()] : [];
+}
 
 function SkeletonCard() {
     return (
@@ -70,7 +67,8 @@ export default function TalentsPage() {
             const matchSearch = !q ||
                 (t.first_name ?? "").toLowerCase().includes(q) ||
                 (t.last_name ?? "").toLowerCase().includes(q) ||
-                t.settore?.toLowerCase().includes(q);
+                t.settore?.toLowerCase().includes(q) ||
+                t.skills?.some(s => s.toLowerCase().includes(q));
             const matchRuolo = filtroRuolo === "Tutti" || t.role === filtroRuolo;
             const matchSettore = filtroSettore === "Tutti i settori" || t.settore === filtroSettore;
             return matchSearch && matchRuolo && matchSettore;
@@ -128,7 +126,7 @@ export default function TalentsPage() {
                                 lastName={talent.last_name}
                                 role={talent.role}
                                 imageUrl={talent.unlocked && talent.profile_image ? `/storage/${talent.profile_image}` : undefined}
-                                skills={getSkills(talent.id)}
+                                skills={getSkills(talent)}
                                 badge={talent.badge}
                                 unlocked={talent.unlocked}
                             />
