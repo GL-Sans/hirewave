@@ -8,6 +8,32 @@ import { useAuth } from "../context/AuthContext";
 import { profileIdFromParam, profilePath } from "../utils/profilePath";
 import { companySizeLabel, roleLabel } from "../utils/labels";
 
+type Review = {
+    id: number;
+    reviewer_id: number;
+    stars: number;
+    comment: string;
+    created_at: string;
+    reviewer?: { id: number; first_name: string };
+};
+
+function Stars({ value, size = "w-4 h-4" }: { value: number; size?: string }) {
+    return (
+        <span className="inline-flex gap-0.5">
+            {[1, 2, 3, 4, 5].map((s) => (
+                <svg
+                    key={s}
+                    className={`${size} ${s <= Math.round(value) ? "text-yellow-400" : "text-gray-300"}`}
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                >
+                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                </svg>
+            ))}
+        </span>
+    );
+}
+
 export default function ProfilePage() {
     const { name } = useParams();
     const [user, setUser] = useState<any>(null);
@@ -19,6 +45,11 @@ export default function ProfilePage() {
     const [descriptionText, setDescriptionText] = useState("");
     const [savingDescription, setSavingDescription] = useState(false);
     const [unlocking, setUnlocking] = useState(false);
+    const [reviews, setReviews] = useState<Review[]>([]);
+    const [reviewStars, setReviewStars] = useState(0);
+    const [reviewComment, setReviewComment] = useState("");
+    const [savingReview, setSavingReview] = useState(false);
+    const [reviewError, setReviewError] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cvInputRef = useRef<HTMLInputElement>(null);
     const { user: loggedUser, fetchUser, logout } = useAuth();
@@ -33,15 +64,25 @@ export default function ProfilePage() {
                     const res = await axiosClient.get(`/api/profile/${name}`);
                     setUser(res.data.user);
                     setPosts(res.data.posts);
+                    setReviews(res.data.reviews ?? []);
+
+                    // Precompila il modulo con la mia recensione, se esiste
+                    const mine = (res.data.reviews ?? []).find(
+                        (r: Review) => r.reviewer_id === loggedUser?.id,
+                    );
+                    setReviewStars(mine?.stars ?? 0);
+                    setReviewComment(mine?.comment ?? "");
                 } else {
                     const res = await axiosClient.get("/api/me");
                     setUser(res.data.user);
 
-                    const postsRes = await axiosClient.get(
-                        `/api/profiles/${res.data.user.id}/posts`
-                    );
+                    const [postsRes, reviewsRes] = await Promise.all([
+                        axiosClient.get(`/api/profiles/${res.data.user.id}/posts`),
+                        axiosClient.get(`/api/profiles/${res.data.user.id}/reviews`),
+                    ]);
 
                     setPosts(postsRes.data);
+                    setReviews(reviewsRes.data.reviews ?? []);
                 }
             } catch (err) {
                 console.error("Errore caricamento profilo:", err);
@@ -52,7 +93,7 @@ export default function ProfilePage() {
         };
 
         fetchProfile();
-    }, [name]);
+    }, [name, isMyProfile, loggedUser?.id]);
 
     useEffect(() => {
         if (user) {
@@ -137,6 +178,36 @@ export default function ProfilePage() {
             console.error("Errore checkout:", err);
             alert("Errore durante l'avvio del pagamento.");
             setUnlocking(false);
+        }
+    };
+
+    const handleSubmitReview = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setReviewError("");
+        if (reviewStars < 1) {
+            setReviewError("Seleziona da 1 a 5 stelle.");
+            return;
+        }
+        setSavingReview(true);
+        try {
+            await axiosClient.post(`/api/profiles/${user.id}/reviews`, {
+                stars: reviewStars,
+                comment: reviewComment,
+            });
+            const res = await axiosClient.get(`/api/profiles/${user.id}/reviews`);
+            setReviews(res.data.reviews ?? []);
+            setUser((u: any) => ({
+                ...u,
+                rating_reputazionale: res.data.average,
+                rating_reputazionale_avg: res.data.average,
+                rating_reputazionale_count: res.data.count,
+            }));
+        } catch (err: any) {
+            setReviewError(
+                err?.response?.data?.message ?? "Errore durante il salvataggio della recensione.",
+            );
+        } finally {
+            setSavingReview(false);
         }
     };
 
@@ -604,6 +675,90 @@ export default function ProfilePage() {
                         )}
                     </div>
                 </div>
+            </div>
+
+            {/* Recensioni */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="text-xl font-bold text-slate-800">Recensioni</h2>
+                    {reviews.length > 0 && (
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <Stars value={reviews.reduce((s, r) => s + r.stars, 0) / reviews.length} />
+                            <span>
+                                {(reviews.reduce((s, r) => s + r.stars, 0) / reviews.length).toFixed(1)} · {reviews.length}{" "}
+                                {reviews.length === 1 ? "recensione" : "recensioni"}
+                            </span>
+                        </div>
+                    )}
+                </div>
+
+                {reviews.length === 0 ? (
+                    <p className="text-sm text-slate-500">Nessuna recensione per ora.</p>
+                ) : (
+                    <ul className="space-y-3">
+                        {reviews.map((r) => (
+                            <li key={r.id} className="border border-slate-100 rounded-xl p-3">
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="text-sm font-semibold text-slate-800">
+                                        {r.reviewer?.first_name ?? "Utente"}
+                                    </span>
+                                    <Stars value={r.stars} size="w-3.5 h-3.5" />
+                                </div>
+                                <p className="text-sm text-slate-600 mt-1 whitespace-pre-wrap">{r.comment}</p>
+                                <p className="text-[11px] text-slate-400 mt-1">
+                                    {new Date(r.created_at).toLocaleDateString("it-IT")}
+                                </p>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+
+                {!isMyProfile && user.can_review && (
+                    <form onSubmit={handleSubmitReview} className="border-t border-slate-100 pt-4 space-y-3">
+                        <p className="text-sm font-semibold text-slate-700">
+                            {reviews.some((r) => r.reviewer_id === loggedUser?.id)
+                                ? "Modifica la tua recensione"
+                                : "Lascia una recensione"}
+                        </p>
+                        <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                                <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => setReviewStars(s)}
+                                    aria-label={`${s} stelle`}
+                                    className="p-0! border-0! bg-transparent"
+                                >
+                                    <svg
+                                        className={`w-7 h-7 ${s <= reviewStars ? "text-yellow-400" : "text-gray-300"}`}
+                                        fill="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                                    </svg>
+                                </button>
+                            ))}
+                        </div>
+                        <textarea
+                            className="w-full border border-gray-300 rounded-lg p-2 text-sm text-gray-800 focus:ring-indigo-500 focus:border-indigo-500"
+                            rows={3}
+                            minLength={10}
+                            maxLength={1000}
+                            required
+                            value={reviewComment}
+                            onChange={(e) => setReviewComment(e.target.value)}
+                            placeholder="Racconta com'è andata (almeno 10 caratteri)"
+                        />
+                        {reviewError && <p className="text-xs text-red-500">{reviewError}</p>}
+                        <button
+                            type="submit"
+                            disabled={savingReview}
+                            className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                        >
+                            {savingReview ? "Salvataggio..." : "Pubblica recensione"}
+                        </button>
+                    </form>
+                )}
             </div>
 
             {/* Posts / Content Area */}
