@@ -131,6 +131,8 @@ class SocialAuthController extends Controller
         $user->forceFill([
             $pending['column'] => $pending['provider_id'],
             'email_verified_at' => now(),
+            // Password casuale: dalle Impostazioni potrà impostarne una propria
+            'has_password' => false,
         ])->save();
 
         Auth::login($user);

@@ -5,9 +5,13 @@ use App\Models\Post;
 use App\Support\ProfileAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class FeedController extends Controller
 {
+    // Segnalazioni oltre le quali un post sparisce dal feed di tutti
+    public const REPORTS_TO_HIDE = 3;
+
     public function index(Request $request)
     {
         $viewer = Auth::user();
@@ -17,6 +21,14 @@ class FeedController extends Controller
 
         $posts = Post::with('user')
             ->where('user_id', '!=', $viewer->id)
+            // "Non mi interessa" e post segnalati da me
+            ->whereNotIn('id', DB::table('hidden_posts')->where('user_id', $viewer->id)->select('post_id'))
+            ->whereNotIn('id', DB::table('post_reports')->where('user_id', $viewer->id)->select('post_id'))
+            // Post con troppe segnalazioni
+            ->whereNotIn('id', DB::table('post_reports')
+                ->select('post_id')
+                ->groupBy('post_id')
+                ->havingRaw('COUNT(*) >= ?', [self::REPORTS_TO_HIDE]))
             ->when($search, fn($q) => $q->where(function($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
                 ->orWhere('description', 'like', "%{$search}%")

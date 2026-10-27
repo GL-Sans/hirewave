@@ -53,6 +53,8 @@ class User extends Authenticatable
         'rating_reputazionale',
         'badge',
         'onboarding_completato',
+        'notifications_enabled',
+        'has_password',
     ];
 
     /**
@@ -81,6 +83,8 @@ class User extends Authenticatable
             'languages' => 'array',
             'curriculum_public' => 'boolean',
             'rating_reputazionale' => 'float',
+            'notifications_enabled' => 'boolean',
+            'has_password' => 'boolean',
         ];
     }
 }

@@ -6,6 +6,7 @@ use App\Models\Message;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Notifications\HireWaveNotification;
 use App\Support\ProfileAccess;
 
 class MessageController extends Controller
@@ -49,6 +50,12 @@ class MessageController extends Controller
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
+        // Aprendo la conversazione si legge anche la relativa notifica
+        $me->unreadNotifications()
+            ->where('data->kind', 'message')
+            ->where('data->sender_id', $other->id)
+            ->update(['read_at' => now()]);
+
         $messages = Message::where(function ($q) use ($me, $other) {
             $q->where('sender_id', $me->id)->where('receiver_id', $other->id);
         })->orWhere(function ($q) use ($me, $other) {
@@ -84,6 +91,24 @@ class MessageController extends Controller
             'receiver_id' => $other->id,
             'body' => $validated['body'],
         ]);
+
+        // Una sola notifica finché la precedente dello stesso mittente non è letta
+        $alreadyNotified = $other->unreadNotifications()
+            ->where('data->kind', 'message')
+            ->where('data->sender_id', $me->id)
+            ->exists();
+
+        if (!$alreadyNotified) {
+            // Il nome rispetta l'anonimato: quello che il destinatario può vedere di me
+            $shown = ProfileAccess::present($other, $me);
+            $other->notify(new HireWaveNotification(
+                'message',
+                'Nuovo messaggio da ' . trim($shown['first_name'] . ' ' . ($shown['last_name'] ?? '')),
+                mb_strimwidth($message->body, 0, 120, '…'),
+                "/chat?to={$me->id}",
+                ['sender_id' => $me->id],
+            ));
+        }
 
         return response()->json($message, 201);
     }

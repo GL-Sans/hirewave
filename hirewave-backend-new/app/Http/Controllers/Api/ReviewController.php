@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Review;
 use App\Models\User;
+use App\Notifications\HireWaveNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -31,6 +32,8 @@ class ReviewController extends Controller
             ], 403);
         }
 
+        $isNew = !Review::where('reviewer_id', Auth::id())->where('worker_id', $target->id)->exists();
+
         $review = Review::updateOrCreate(
             [
                 'reviewer_id' => Auth::id(),
@@ -48,6 +51,15 @@ class ReviewController extends Controller
         User::where('id', $target->id)->update([
             'rating_reputazionale' => round($avg, 1)
         ]);
+
+        if ($isNew) {
+            $target->notify(new HireWaveNotification(
+                'review',
+                'Hai ricevuto una nuova recensione',
+                Auth::user()->first_name . " ti ha dato {$request->stars} " . ($request->stars == 1 ? 'stella' : 'stelle') . '.',
+                '/profile',
+            ));
+        }
 
         return response()->json($review->load('reviewer:id,first_name'), 201);
     }

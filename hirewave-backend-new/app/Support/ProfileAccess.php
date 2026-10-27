@@ -2,6 +2,7 @@
 namespace App\Support;
 
 use App\Models\User;
+use App\Notifications\HireWaveNotification;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -50,13 +51,26 @@ class ProfileAccess
         return $at ? now()->parse($at)->addDays(self::UNLOCK_DAYS)->toIso8601String() : null;
     }
 
-    /** Registra (o rinnova, se scaduto) lo sblocco */
+    /** Registra (o rinnova, se scaduto) lo sblocco e avvisa il lavoratore */
     public static function unlock(int $companyId, int $workerId): void
     {
+        // Conferma Stripe e webhook possono arrivare entrambi: nessun doppio sblocco/avviso
+        if (self::isUnlocked($companyId, $workerId)) {
+            return;
+        }
+
         DB::table('unlocked_profiles')->updateOrInsert(
             ['company_id' => $companyId, 'worker_id' => $workerId],
             ['unlocked_at' => now()]
         );
+
+        $company = User::find($companyId);
+        User::find($workerId)?->notify(new HireWaveNotification(
+            'unlock',
+            'Un\'azienda ha sbloccato il tuo profilo',
+            "{$company->first_name} {$company->last_name} ora può vedere i tuoi contatti e scriverti.",
+            "/profile/{$company->id}",
+        ));
     }
 
     /** $unlockedIds evita una query per ogni riga negli elenchi */
@@ -87,6 +101,8 @@ class ProfileAccess
             'role' => $owner->role,
             'profile_image' => $visible ? $owner->profile_image : null,
             'badge' => $owner->badge,
+            // Il settore non identifica la persona: serve ai filtri del feed
+            'settore' => $owner->settore,
         ];
     }
 

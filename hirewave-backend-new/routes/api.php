@@ -11,6 +11,9 @@ use App\Http\Controllers\Api\CurriculumController;
 use App\Http\Controllers\Api\StripeController;
 use App\Http\Controllers\Api\SocialAuthController;
 use App\Http\Controllers\Api\MessageController;
+use App\Http\Controllers\Api\ConnectionController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\AccountController;
 
 // Webhook Stripe — FUORI da auth, Stripe non manda cookie
 Route::post('/stripe/webhook', [StripeController::class, 'webhook']);
@@ -53,4 +56,27 @@ Route::middleware(['web', 'auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::post('/messages/{user}', [MessageController::class, 'store'])->whereNumber('user');
     Route::get('/profiles/{id}/reviews', [App\Http\Controllers\Api\ReviewController::class, 'index']);
     Route::post('/profiles/{id}/reviews', [App\Http\Controllers\Api\ReviewController::class, 'store']);
+
+    // Menu "..." dei post. La modifica usa POST perché può contenere un'immagine (multipart)
+    Route::post('/posts/{post}', [PostController::class, 'update'])->whereNumber('post');
+    Route::delete('/posts/{post}', [PostController::class, 'destroy'])->whereNumber('post');
+    Route::post('/posts/{post}/hide', [PostController::class, 'hide'])->whereNumber('post');
+    Route::delete('/posts/{post}/hide', [PostController::class, 'unhide'])->whereNumber('post');
+    Route::post('/posts/{post}/report', [PostController::class, 'report'])->whereNumber('post');
+
+    // Salva / Segui
+    Route::post('/saved/{user}', [ConnectionController::class, 'toggleSave'])->whereNumber('user');
+    Route::post('/follow/{user}', [ConnectionController::class, 'toggleFollow'])->whereNumber('user');
+
+    // Notifiche
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'readAll']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'read']);
+
+    // Impostazioni
+    Route::put('/me/preferences', [AccountController::class, 'updatePreferences']);
+    Route::put('/me/password', [AccountController::class, 'updatePassword']);
+    Route::get('/me/export', [AccountController::class, 'export']);
+    Route::delete('/me', [AccountController::class, 'destroy']);
 });
