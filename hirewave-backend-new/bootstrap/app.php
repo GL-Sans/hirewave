@@ -23,9 +23,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\HandleCors::class
         );
 
-        // Disattiva CSRF per tutte le API REST
+        // CSRF attivo (l'autenticazione usa i cookie di sessione): il frontend
+        // invia X-XSRF-TOKEN tramite axiosClient. Escluso solo il webhook Stripe,
+        // che non ha cookie ed è verificato con la firma.
         $middleware->validateCsrfTokens(except: [
-            'api/*',
+            'api/stripe/webhook',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

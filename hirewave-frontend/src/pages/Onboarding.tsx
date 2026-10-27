@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import axiosClient from "../api/axiosClient";
 
 const DOMANDE_WORKER = [
     { id: "settore", domanda: "In quale settore vuoi lavorare?", tipo: "select", opzioni: ["Ristorazione / HoReCa", "Turismo / Hospitality", "Eventi", "Logistica", "Commercio / Retail", "IT / Digitale", "Altro"] },
@@ -47,16 +48,11 @@ export default function OnboardingPage() {
         setLoading(true);
         setErrore("");
         try {
-            const res = await fetch("/api/onboarding", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Accept": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({
-                    ...risposte,
-                    anni_esperienza: parseInt(risposte.anni_esperienza || "0"),
-                }),
+            // axiosClient invia il token CSRF richiesto dal backend
+            await axiosClient.post("/api/onboarding", {
+                ...risposte,
+                anni_esperienza: parseInt(risposte.anni_esperienza || "0"),
             });
-            if (!res.ok) throw new Error("Errore invio");
             await fetchUser();
             navigate("/feed");
         } catch {
