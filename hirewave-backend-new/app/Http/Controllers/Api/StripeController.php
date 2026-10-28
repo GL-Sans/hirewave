@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
+use App\Models\DocumentoVerifica;
 use App\Models\User;
 use App\Support\FrontendUrl;
 use App\Support\ProfileAccess;
@@ -17,6 +18,7 @@ class StripeController extends Controller
     {
         $request->validate([
             'worker_id' => 'required|exists:users,id',
+            'prodotto' => 'nullable|in:sblocco,verifica_premium',
         ]);
 
         $company = Auth::user();
@@ -27,6 +29,10 @@ class StripeController extends Controller
         $worker = User::findOrFail($request->worker_id);
         if ($worker->role === 'COMPANY') {
             return response()->json(['message' => 'Profilo non sbloccabile'], 422);
+        }
+
+        if (($request->prodotto ?? 'sblocco') === 'verifica_premium') {
+            return $this->checkoutVerificaPremium($request, $company, $worker);
         }
 
         if (ProfileAccess::isUnlocked($company->id, $worker->id)) {
@@ -73,6 +79,60 @@ class StripeController extends Controller
         return response()->json(['url' => $session->url]);
     }
 
+    /** "Verifica Premium" €9,99: documenti originali di un profilo già sbloccato e verificato */
+    private function checkoutVerificaPremium(Request $request, User $company, User $worker)
+    {
+        if (!ProfileAccess::isUnlocked($company->id, $worker->id)) {
+            return response()->json(['message' => 'Sblocca prima il profilo'], 422);
+        }
+        if (!DocumentoVerifica::where('user_id', $worker->id)->where('stato', 'verificato')->exists()) {
+            return response()->json(['message' => 'Questo profilo non ha documenti verificati'], 422);
+        }
+        if (DocumentoController::haVerificaPremium($company->id, $worker->id)) {
+            return response()->json(['message' => 'Verifica Premium già acquistata'], 409);
+        }
+
+        $frontendUrl = FrontendUrl::resolve($request);
+        $ritorno = $frontendUrl . '/profile/' . $worker->id;
+
+        if (!config('services.stripe.secret')) {
+            // Stessa modalità demo dello sblocco: solo in locale
+            if (!app()->environment('local')) {
+                report(new \RuntimeException('STRIPE_SECRET mancante: Verifica Premium disattivata'));
+                return response()->json(['message' => 'Pagamenti momentaneamente non disponibili'], 503);
+            }
+            DocumentoController::concediVerificaPremium($company->id, $worker->id);
+            return response()->json(['url' => $ritorno . '?verifica=ok']);
+        }
+
+        Stripe::setApiKey(config('services.stripe.secret'));
+
+        $session = Session::create([
+            'payment_method_types' => ['card'],
+            'line_items' => [[
+                'price_data' => [
+                    'currency' => 'eur',
+                    'product_data' => [
+                        'name' => 'Verifica Premium — ' . $worker->first_name . ' ' . $worker->last_name,
+                        'description' => 'Accesso ai documenti originali di certificazione del profilo',
+                    ],
+                    'unit_amount' => 999,
+                ],
+                'quantity' => 1,
+            ]],
+            'mode' => 'payment',
+            'success_url' => $ritorno . '?session_id={CHECKOUT_SESSION_ID}',
+            'cancel_url' => $ritorno,
+            'metadata' => [
+                'worker_id' => $worker->id,
+                'company_id' => $company->id,
+                'prodotto' => 'verifica_premium',
+            ],
+        ]);
+
+        return response()->json(['url' => $session->url]);
+    }
+
     // Verifica il pagamento al ritorno dal checkout (non dipende dal webhook)
     public function confirm(Request $request)
     {
@@ -101,10 +161,11 @@ class StripeController extends Controller
             return response()->json(['unlocked' => false], 422);
         }
 
-        $this->unlock($session->metadata->company_id, $session->metadata->worker_id);
+        $this->fulfill($session);
 
         return response()->json([
             'unlocked' => true,
+            'prodotto' => $session->metadata->prodotto ?? 'sblocco',
             'worker_id' => (int) $session->metadata->worker_id,
         ]);
     }
@@ -135,10 +196,22 @@ class StripeController extends Controller
             if ($session->created < now()->subDays(ProfileAccess::UNLOCK_DAYS)->timestamp) {
                 return response()->json(['status' => 'ignored']);
             }
-            $this->unlock($session->metadata->company_id, $session->metadata->worker_id);
+            $this->fulfill($session);
         }
 
         return response()->json(['status' => 'ok']);
+    }
+
+    private function fulfill($session): void
+    {
+        $companyId = (int) $session->metadata->company_id;
+        $workerId = (int) $session->metadata->worker_id;
+
+        if (($session->metadata->prodotto ?? 'sblocco') === 'verifica_premium') {
+            DocumentoController::concediVerificaPremium($companyId, $workerId);
+        } else {
+            $this->unlock($companyId, $workerId);
+        }
     }
 
     private function unlock($companyId, $workerId): void

@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\DocumentoVerifica;
 use App\Models\Message;
 use App\Models\Post;
 use App\Models\Review;
@@ -83,6 +84,8 @@ class AccountController extends Controller
             'profili_salvati' => DB::table('saved_profiles')->where('user_id', $user->id)->pluck('saved_user_id')->toArray(),
             'aziende_seguite' => DB::table('company_follows')->where('user_id', $user->id)->pluck('company_id')->toArray(),
             'notifiche' => $user->notifications()->get(['data', 'read_at', 'created_at'])->toArray(),
+            'documenti_verifica' => DocumentoVerifica::where('user_id', $user->id)->get(['tipo', 'riferimento', 'anni', 'anno', 'nome_file', 'stato', 'esito', 'created_at'])->toArray(),
+            'storico_rating' => DB::table('rating_storico')->where('user_id', $user->id)->get(['valore_precedente', 'valore', 'motivo', 'created_at'])->toArray(),
         ];
 
         return response()->json($data, 200, [
@@ -115,6 +118,8 @@ class AccountController extends Controller
             ['public', $user->profile_image],
             ['local', $user->cv],
             ...Post::where('user_id', $user->id)->whereNotNull('image')->pluck('image')->map(fn ($p) => ['public', $p])->all(),
+            // I documenti di verifica sono dati personali: via anche i file
+            ...DocumentoVerifica::where('user_id', $user->id)->pluck('file_path')->map(fn ($p) => ['local', $p])->all(),
         ], fn ($f) => !empty($f[1]));
 
         // Logout PRIMA di cancellare: il logout rigenera il remember token e salva

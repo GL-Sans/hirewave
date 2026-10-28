@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\DocumentoVerifica;
 use App\Models\User;
 use App\Models\Post;
 use App\Models\Review;
@@ -47,6 +48,10 @@ class PublicProfileController extends Controller
 
         $author = ProfileAccess::present($viewer, $worker);
 
+        // Documenti originali: solo al proprietario e a chi ha la Verifica Premium
+        $verificati = DocumentoVerifica::where('user_id', $worker->id)->where('stato', 'verificato')->latest()->get();
+        $premium = $isCompanyViewer && DocumentoController::haVerificaPremium($viewer->id, $worker->id);
+
         return response()->json([
             'user' => [
                 'id' => $worker->id,
@@ -86,6 +91,12 @@ class PublicProfileController extends Controller
                     ($worker->role !== 'COMPANY' && $unlocked)
                 ),
                 'can_review' => ReviewController::canReview($viewer, $worker),
+
+                'verifica_premium' => $premium,
+                'verifica_premium_disponibile' => $unlocked && !$premium && $verificati->isNotEmpty(),
+                'documenti' => $isOwnProfile || $premium
+                    ? $verificati->map(fn ($d) => DocumentoController::presenta($d))->values()
+                    : null,
 
                 'rating_reputazionale_avg' => $average,
                 'rating_reputazionale_count' => $reviews->count(),

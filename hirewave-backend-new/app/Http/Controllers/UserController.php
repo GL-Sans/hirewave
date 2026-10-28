@@ -15,7 +15,10 @@ class UserController extends Controller
 
         $talents = User::whereIn('role', ['WORKER', 'PRO'])
             ->where('id', '!=', $viewer->id)
-            ->select('id', 'first_name', 'last_name', 'role', 'profile_image', 'badge', 'rating_tecnico', 'settore', 'skills', 'curriculum_public')
+            ->select('id', 'first_name', 'last_name', 'role', 'profile_image', 'badge', 'rating_tecnico', 'settore', 'skills', 'curriculum_public', 'livello_istruzione')
+            // Le aziende cercano per rating: i migliori per primi, i verificati a parità
+            ->orderByDesc('rating_tecnico')
+            ->orderByRaw("badge = 'verde' desc")
             ->get()
             ->map(function ($user) use ($viewer, $unlockedIds, $savedIds) {
                 // Foto e cognome solo se sbloccato (prima la foto veniva sempre inviata)
@@ -23,6 +26,8 @@ class UserController extends Controller
                 return array_merge($base, [
                     'rating_tecnico' => $user->rating_tecnico,
                     'settore' => $user->settore,
+                    // Il tipo di titolo è visibile prima dello sblocco (business plan)
+                    'livello_istruzione' => $user->livello_istruzione,
                     // Stessa regola del profilo: skill visibili solo con curriculum pubblico
                     'skills' => $user->curriculum_public ? ($user->skills ?? []) : [],
                     'unlocked' => in_array($user->id, $unlockedIds, true),

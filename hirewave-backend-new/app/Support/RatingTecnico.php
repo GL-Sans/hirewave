@@ -113,11 +113,15 @@ class RatingTecnico
 
         $documenti = DocumentoVerifica::where('user_id', $user->id)->get();
         $nuovo = self::calcola($user, $documenti);
-        $vecchio = (int) $user->rating_tecnico;
         $badge = $documenti->where('stato', 'verificato')->isNotEmpty() ? 'verde' : 'grigio';
 
-        DB::transaction(function () use ($user, $nuovo, $vecchio, $badge, $motivo) {
-            $user->forceFill(['rating_tecnico' => $nuovo, 'badge' => $badge])->save();
+        DB::transaction(function () use ($user, $nuovo, $badge, $motivo) {
+            // Valore salvato, non quello dell'istanza: un'altra istanza dello
+            // stesso utente (es. la verifica di un documento) può averlo già cambiato
+            $vecchio = (int) DB::table('users')->where('id', $user->id)->lockForUpdate()->value('rating_tecnico');
+
+            DB::table('users')->where('id', $user->id)->update(['rating_tecnico' => $nuovo, 'badge' => $badge]);
+            $user->forceFill(['rating_tecnico' => $nuovo, 'badge' => $badge])->syncOriginalAttributes(['rating_tecnico', 'badge']);
 
             if ($nuovo !== $vecchio) {
                 DB::table('rating_storico')->insert([

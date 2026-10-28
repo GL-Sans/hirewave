@@ -16,6 +16,9 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\DocumentoController;
+use App\Http\Controllers\Api\AdminDocumentoController;
+use App\Http\Middleware\EnsureAdmin;
 
 // I limiti (throttle:...) sono definiti in AppServiceProvider::configureRateLimits
 
@@ -67,6 +70,20 @@ Route::middleware(['web', 'auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/posts', [PostController::class, 'store']);
         // La modifica usa POST perché può contenere un'immagine (multipart)
         Route::post('/posts/{post}', [PostController::class, 'update'])->whereNumber('post');
+        // Documenti di verifica (titolo, esperienza, certificazioni)
+        Route::post('/me/documenti', [DocumentoController::class, 'store']);
+    });
+
+    Route::get('/me/documenti', [DocumentoController::class, 'index']);
+    Route::get('/documenti/{documento}/file', [DocumentoController::class, 'download'])->whereNumber('documento');
+    Route::delete('/me/documenti/{documento}', [DocumentoController::class, 'destroy'])
+        ->whereNumber('documento')->middleware('throttle:writes');
+
+    // Revisione manuale dei documenti ambigui
+    Route::middleware(EnsureAdmin::class)->prefix('admin')->group(function () {
+        Route::get('/documenti', [AdminDocumentoController::class, 'index']);
+        Route::post('/documenti/{documento}/esito', [AdminDocumentoController::class, 'esito'])
+            ->whereNumber('documento')->middleware('throttle:writes');
     });
 
     // Pubblicazioni e interazioni
