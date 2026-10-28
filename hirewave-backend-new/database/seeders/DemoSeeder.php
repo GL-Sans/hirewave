@@ -214,6 +214,8 @@ class DemoSeeder extends Seeder
     {
         $u = $this->base($alias, $role, $nome, $cognome, array_merge($dati, [
             'years_experience' => $dati['anni_esperienza'],
+            // Curriculum privato: nome e contatti si vedono solo dopo lo sblocco a pagamento
+            'curriculum_public' => false,
         ]));
         RatingTecnico::aggiorna($u, 'Rating iniziale generato dall\'onboarding');
 

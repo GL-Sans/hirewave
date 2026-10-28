@@ -196,6 +196,8 @@ class RatingTecnico
     {
         $anni = (int) ($user->anni_esperienza ?? $user->years_experience ?? 0);
         $anniVerificati = min($anni, (int) $verificati->where('tipo', 'esperienza')->max('anni'));
+        // Oltre 10 anni non si guadagnano punti: verificarne 10 basta per la voce piena
+        $anniUtili = min($anni, 10);
 
         $pieni = self::puntiEsperienza($anni);
         $pieniVerificati = self::puntiEsperienza($anniVerificati);
@@ -203,8 +205,10 @@ class RatingTecnico
 
         if ($anni === 0) {
             $spiegazione = 'Nessun anno di esperienza indicato: 0 punti.';
-        } elseif ($anniVerificati >= $anni) {
-            $spiegazione = "$anni anni = $pieni punti, verificati con documento (100%).";
+        } elseif ($anniVerificati >= $anniUtili) {
+            $spiegazione = $anniVerificati >= $anni
+                ? "$anni anni = $pieni punti, verificati con documento (100%)."
+                : "$anni anni = $pieni punti: $anniVerificati verificati con documento, già il massimo (oltre 10 anni non si aggiungono punti).";
         } elseif ($anniVerificati > 0) {
             $spiegazione = "$anni anni = $pieni punti: $anniVerificati verificati al 100%, gli altri dichiarati all'80% = $punti.";
         } else {
@@ -217,7 +221,7 @@ class RatingTecnico
             'valore' => $anni === 1 ? '1 anno' : "$anni anni",
             'punti' => $punti,
             'max' => 40,
-            'stato' => self::stato($anniVerificati, $anni),
+            'stato' => self::stato(min($anniVerificati, $anniUtili), $anniUtili),
             'in_verifica' => $aperti->where('tipo', 'esperienza')->isNotEmpty(),
             'spiegazione' => $spiegazione . ($anni < 10 ? ' Scala: 6 punti l\'anno fino a 5 anni, poi 2 l\'anno fino a 10.' : ''),
             'anni' => $anni,
@@ -283,7 +287,7 @@ class RatingTecnico
             $out[] = ['azione' => 'Carica il documento del titolo di studio', 'punti' => $istruzione['potenziale'] - $istruzione['punti'], 'tipo' => 'istruzione'];
         }
 
-        if ($esperienza['anni_verificati'] < $esperienza['anni'] && !$esperienza['in_verifica']) {
+        if ($esperienza['anni_verificati'] < min($esperienza['anni'], 10) && !$esperienza['in_verifica']) {
             $out[] = ['azione' => 'Verifica l\'esperienza con un contratto o una lettera di referenza', 'punti' => $esperienza['potenziale'] - $esperienza['punti'], 'tipo' => 'esperienza'];
         }
         if ($esperienza['anni'] < 10) {

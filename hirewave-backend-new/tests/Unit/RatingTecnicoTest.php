@@ -86,6 +86,16 @@ class RatingTecnicoTest extends TestCase
         $this->assertSame(5, $esp['anni_verificati']);
     }
 
+    public function test_dieci_anni_verificati_bastano_oltre_i_dieci(): void
+    {
+        $d = RatingTecnico::dettaglio($this->utente(null, 12, null), collect([$this->doc('esperienza', 'Hotel', 10)]));
+        $esp = $d['voci'][1];
+
+        $this->assertSame(40, $esp['punti']);
+        $this->assertSame('verificato', $esp['stato']);
+        $this->assertNotContains('esperienza', array_column($d['consigli'], 'tipo'));
+    }
+
     public function test_i_vecchi_paradossi_non_esistono_piu(): void
     {
         // Prima: "no" valeva 30 punti e la licenza media batteva la laurea magistrale
