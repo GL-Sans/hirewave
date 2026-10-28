@@ -10,8 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password;
+use App\Support\EliminaAccount;
 use App\Support\SecurityLog;
 
 /** Funzioni della pagina Impostazioni */
@@ -115,14 +115,6 @@ class AccountController extends Controller
             $request->validate(['confirm' => 'required|in:ELIMINA']);
         }
 
-        $files = array_filter([
-            ['public', $user->profile_image],
-            ['local', $user->cv],
-            ...Post::where('user_id', $user->id)->whereNotNull('image')->pluck('image')->map(fn ($p) => ['public', $p])->all(),
-            // I documenti di verifica sono dati personali: via anche i file
-            ...DocumentoVerifica::where('user_id', $user->id)->pluck('file_path')->map(fn ($p) => ['local', $p])->all(),
-        ], fn ($f) => !empty($f[1]));
-
         // Logout PRIMA di cancellare: il logout rigenera il remember token e salva
         // l'utente, e su un utente già cancellato quel salvataggio lo ricreerebbe
         Auth::guard('web')->logout();
@@ -131,19 +123,7 @@ class AccountController extends Controller
             $request->session()->regenerateToken();
         }
 
-        DB::transaction(function () use ($user) {
-            // unlocked_profiles non ha cancellazione a cascata
-            DB::table('unlocked_profiles')
-                ->where('company_id', $user->id)
-                ->orWhere('worker_id', $user->id)
-                ->delete();
-            $user->notifications()->delete();
-            $user->delete(); // post, messaggi, recensioni, salvati e follow: a cascata
-        });
-
-        foreach ($files as [$disk, $path]) {
-            Storage::disk($disk)->delete($path);
-        }
+        EliminaAccount::esegui($user);
 
         return response()->json(['deleted' => true]);
     }

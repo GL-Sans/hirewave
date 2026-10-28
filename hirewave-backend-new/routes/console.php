@@ -94,5 +94,28 @@ Artisan::command('hirewave:admin {email} {--revoca}', function (string $email) {
     $this->info($user->is_admin ? "$email ora è amministratore." : "$email non è più amministratore.");
 })->purpose('Dà o toglie i permessi di revisione dei documenti');
 
+// php artisan hirewave:pulisci-utenti [--tieni=email ...] [--force]
+// Elimina gli utenti che non sono della demo (@demo.hirewave.it), con dati e file.
+// Fare prima un backup del database: non si torna indietro.
+Artisan::command('hirewave:pulisci-utenti {--tieni=* : email da conservare} {--force : senza conferma}', function () {
+    $tieni = array_map('strtolower', (array) $this->option('tieni'));
+    $utenti = User::where('email', 'not like', '%@' . \Database\Seeders\DemoSeeder::DOMINIO)
+        ->get()
+        ->reject(fn (User $u) => in_array(strtolower($u->email), $tieni, true));
+
+    if ($utenti->isEmpty()) {
+        return $this->info('Nessun utente da eliminare.');
+    }
+
+    $this->table(['Id', 'Nome', 'Email', 'Ruolo'], $utenti->map(fn ($u) => [$u->id, "{$u->first_name} {$u->last_name}", $u->email, $u->role])->all());
+
+    if (!$this->option('force') && !$this->confirm('Eliminare questi ' . $utenti->count() . ' utenti con tutti i loro dati?')) {
+        return $this->warn('Annullato.');
+    }
+
+    $utenti->each(fn (User $u) => \App\Support\EliminaAccount::esegui($u));
+    $this->info($utenti->count() . ' utenti eliminati.');
+})->purpose('Elimina gli utenti non demo (account di prova)');
+
 // Con il cron di Laravel attivo (schedule:run) la pulizia è anche giornaliera
 Schedule::command('security:prune')->daily();

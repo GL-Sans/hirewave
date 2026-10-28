@@ -134,6 +134,56 @@ class DemoSeeder extends Seeder
             ['istruzione', null, null, 2022],
         ]);
 
+        // Copertura completa: in ogni settore almeno un lavoratore, un professionista e un'azienda
+        $logistica = $this->azienda('logistica', 'Trasporti', 'Adriatica', 'Logistica', 'media', 15,
+            'Logistica e trasporti per la GDO tra Abruzzo e Marche, magazzino da 12.000 m² a San Giovanni Teatino.');
+        $negozio = $this->azienda('negozio', 'Boutique', 'Corso Umberto', 'Commercio / Retail', 'piccola', 9,
+            'Abbigliamento e accessori nel centro di Pescara, due punti vendita.');
+        $software = $this->azienda('software', 'Pixel', 'Lab', 'IT / Digitale', 'piccola', 6,
+            'Software house: gestionali per hotel e ristoranti, app e siti e-commerce.');
+
+        $this->talento('elena', 'WORKER', 'Elena', 'Ricci', [
+            'settore' => 'Commercio / Retail', 'ral_aspettativa' => '€1.000 – €1.500/mese',
+            'livello_istruzione' => 'diploma', 'anni_esperienza' => 5, 'certificazioni' => 'Inglese B2',
+            'birth_date' => '1997-10-02', 'city' => 'Pescara', 'skills' => ['Vendita', 'Cassa', 'Vetrine'],
+            'description' => 'Commessa e addetta cassa, 5 anni in negozi di abbigliamento del centro.',
+        ]);
+
+        $this->talento('matteo', 'WORKER', 'Matteo', 'Galli', [
+            'settore' => 'IT / Digitale', 'ral_aspettativa' => '€1.500 – €2.000/mese',
+            'livello_istruzione' => 'laurea_triennale', 'anni_esperienza' => 2, 'certificazioni' => 'CompTIA A+',
+            'birth_date' => '2000-12-14', 'city' => 'Chieti', 'skills' => ['Help desk', 'Reti', 'Windows'],
+            'description' => 'Tecnico help desk e reti, laurea in informatica. Cerco un contratto stabile.',
+        ], [
+            ['istruzione', null, null, 2023],
+        ]);
+
+        $this->talento('francesca', 'PRO', 'Francesca', 'Rinaldi', [
+            'settore' => 'Turismo / Hospitality', 'ral_aspettativa' => 'Tariffa giornaliera / Freelance',
+            'livello_istruzione' => 'laurea_magistrale', 'anni_esperienza' => 9, 'certificazioni' => 'Guida turistica regionale, Inglese C1, Tedesco B2',
+            'birth_date' => '1989-03-28', 'city' => 'L\'Aquila', 'skills' => ['Visite guidate', 'Lingue', 'Tour operator'],
+            'description' => 'Guida turistica abilitata: tour in italiano, inglese e tedesco per hotel e agenzie.',
+        ], [
+            ['certificazione', 'Guida turistica regionale', null, 2016],
+        ]);
+
+        $this->talento('stefano', 'PRO', 'Stefano', 'D\'Angelo', [
+            'settore' => 'Logistica', 'ral_aspettativa' => 'Tariffa giornaliera / Freelance',
+            'livello_istruzione' => 'diploma', 'anni_esperienza' => 14, 'certificazioni' => 'Patente CE, CQC merci, ADR',
+            'birth_date' => '1984-06-19', 'city' => 'Ortona', 'skills' => ['Autotrasporto', 'Merci pericolose'],
+            'description' => 'Autotrasportatore in proprio con patente CE e ADR, disponibile per tratte nazionali.',
+        ], [
+            ['esperienza', 'Autista, Trasporti Centro Italia', 10, 2014],
+            ['certificazione', 'ADR', null, 2021],
+        ]);
+
+        $this->talento('alessia', 'PRO', 'Alessia', 'Ferri', [
+            'settore' => 'Commercio / Retail', 'ral_aspettativa' => 'Tariffa giornaliera / Freelance',
+            'livello_istruzione' => 'laurea_triennale', 'anni_esperienza' => 3, 'certificazioni' => null,
+            'birth_date' => '1998-01-08', 'city' => 'Pescara', 'skills' => ['Visual merchandising', 'Allestimenti'],
+            'description' => 'Visual merchandiser freelance: vetrine e allestimenti per negozi e showroom.',
+        ]);
+
         // Sblocchi già pagati, recensioni di chi ha sbloccato, contatti tra utenti
         foreach ([[$hotel, $sara], [$hotel, $luca], [$molo, $luca], [$molo, $antonio], [$eventi, $federica]] as [$c, $w]) {
             DB::table('unlocked_profiles')->insert(['company_id' => $c->id, 'worker_id' => $w->id, 'unlocked_at' => now()->subDays(rand(2, 20))]);
@@ -164,15 +214,18 @@ class DemoSeeder extends Seeder
         $this->post($hotel, 'job', 'Camerieri di sala · stagione 2027', 'Cerchiamo 4 camerieri per il ristorante dell\'hotel, giugno–settembre. Richiesto HACCP, gradito inglese.', 'Pescara', 'Contratto a tempo determinato', 1500, 'Mensile');
         $this->post($hotel, 'job', 'Receptionist con inglese e tedesco', 'Turni su 3 fasce, esperienza in hotel di almeno 2 anni.', 'Pescara', 'Contratto a tempo determinato', 1700, 'Mensile');
         $this->post($molo, 'job', 'Chef de partie pesce', 'Brigata di 6 persone, cucina di pesce crudo e cotto. Disponibilità serale.', 'Pescara', 'Contratto a tempo indeterminato', 2200, 'Mensile');
+        $this->post($logistica, 'job', 'Magazzinieri con patentino muletto', 'Turni diurni, contratto di 6 mesi con possibilità di rinnovo.', 'San Giovanni Teatino', 'Contratto a tempo determinato', 1600, 'Mensile');
+        $this->post($negozio, 'job', 'Addetta vendita part-time', '24 ore settimanali, gradita esperienza nell\'abbigliamento.', 'Pescara', 'Part-time', 900, 'Mensile');
+        $this->post($software, 'job', 'Tecnico help desk', 'Assistenza ai clienti su gestionali per hotel, anche da remoto.', 'Pescara', 'Contratto a tempo indeterminato', 1800, 'Mensile');
         $this->post($eventi, 'job', 'Hostess per fiera di aprile', '3 giornate in fiera, accoglienza e registrazione ospiti.', 'Pescara', 'A chiamata', 15, 'Ora');
         $this->post($marco, 'service', 'Cameriere disponibile estate 2027', 'Stagionale giugno–settembre in ristorante o stabilimento balneare.', 'Pescara', 'Contratto a tempo determinato', 1400, 'Mensile');
         $this->post($federica, 'service', 'Siti e gestionali per hotel e ristoranti', 'Sviluppo web su misura, prenotazioni online e integrazioni.', 'Remoto', 'Partita IVA', 300, 'Fisso');
         $this->post($sara, 'service', 'Bagnina con brevetto FIN e BLSD', 'Disponibile per la stagione 2027 sulla costa abruzzese.', 'Montesilvano', 'Contratto a tempo determinato', 1300, 'Mensile');
 
         $this->command?->info('Demo pronta. Password per tutti: ' . self::PASSWORD);
-        $this->command?->table(['Account', 'Ruolo', 'Rating', 'Badge'], User::where('email', 'like', '%@' . self::DOMINIO)
-            ->orderBy('role')->orderByDesc('rating_tecnico')->get()
-            ->map(fn ($u) => [$u->email, $u->role . ($u->is_admin ? ' (admin)' : ''), $u->role === 'COMPANY' ? '—' : $u->rating_tecnico, $u->badge])->all());
+        $this->command?->table(['Account', 'Ruolo', 'Settore', 'Rating', 'Badge'], User::where('email', 'like', '%@' . self::DOMINIO)
+            ->orderBy('settore')->orderBy('role')->get()
+            ->map(fn ($u) => [$u->email, $u->role . ($u->is_admin ? ' (admin)' : ''), $u->settore, $u->role === 'COMPANY' ? '—' : $u->rating_tecnico, $u->role === 'COMPANY' ? '—' : $u->badge])->all());
     }
 
     private function pulisci(): void
