@@ -36,3 +36,16 @@ export function unlockPrice(badge?: string | null) {
 }
 
 export const VERIFICA_PREMIUM_PRICE = "9,99";
+
+// Centesimi dal backend → "29,99"
+export function euro(cents: number) {
+    return (cents / 100).toFixed(2).replace(".", ",");
+}
+
+// Piani dei lavoratori (business plan, par. 8.1): stesse cifre di Abbonamento.php
+export const PIANI = {
+    premium: { nome: "Premium", prezzo: "14,99" },
+    boost: { nome: "Boost", prezzo: "29,99" },
+} as const;
+
+export type Piano = keyof typeof PIANI;

@@ -91,6 +91,7 @@ class User extends Authenticatable
             'is_admin' => 'boolean',
             'rating_tecnico' => 'integer',
             'anni_esperienza' => 'integer',
+            'abbonamento_scade_at' => 'datetime',
         ];
     }
 }

@@ -140,8 +140,8 @@ class DocumentoController extends Controller
             return true;
         }
 
-        return $viewer->role === 'COMPANY'
-            && $doc->stato === 'verificato'
+        // La Verifica Premium si acquista solo con lo sblocco (aziende e professionisti)
+        return $doc->stato === 'verificato'
             && self::haVerificaPremium($viewer->id, $doc->user_id);
     }
 

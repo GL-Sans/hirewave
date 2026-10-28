@@ -6,6 +6,7 @@ import {
     ChatBubbleLeftEllipsisIcon,
     LockOpenIcon,
     ShieldCheckIcon,
+    SparklesIcon,
     StarIcon,
     UserPlusIcon,
 } from "@heroicons/react/24/outline";
@@ -15,7 +16,7 @@ import { profilePath } from "../utils/profilePath";
 
 type Notification = {
     id: string;
-    kind: "message" | "review" | "unlock" | "job_post" | "follow" | "verifica" | null;
+    kind: "message" | "review" | "unlock" | "job_post" | "follow" | "verifica" | "abbonamento" | null;
     title: string;
     body: string;
     url: string | null;
@@ -30,6 +31,7 @@ const ICONS = {
     job_post: BriefcaseIcon,
     follow: UserPlusIcon,
     verifica: ShieldCheckIcon,
+    abbonamento: SparklesIcon,
 };
 
 function timeAgo(iso: string) {

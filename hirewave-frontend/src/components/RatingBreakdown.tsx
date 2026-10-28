@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { InformationCircleIcon } from "@heroicons/react/24/outline";
 import type { ConsiglioRating, DocumentoPreset, RatingDettaglio, RatingStorico, StatoVoce, VoceRating } from "../types/Rating";
 
 type Props = {
@@ -42,11 +44,28 @@ const PRESET: Partial<Record<ConsiglioRating["tipo"], DocumentoPreset["tipo"]>> 
 export default function RatingBreakdown({ dettaglio, storico, curriculumPath, onUpload }: Props) {
     const { totale, voci, max_dichiarato, consigli } = dettaglio;
     const isOwner = !!onUpload;
+    // Dettagli chiusi: a colpo d'occhio solo punteggio e barra
+    const [open, setOpen] = useState(false);
+    const guadagno = isOwner ? (consigli ?? []).reduce((s, c) => s + c.punti, 0) : 0;
 
     return (
-        <div className="mt-3 border border-slate-200 rounded-xl p-4 w-full max-w-md text-left">
+        <div className="border border-slate-200 rounded-xl p-4 w-full text-left">
             <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold text-slate-700">Rating Tecnico</span>
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+                    Rating Tecnico
+                    <button
+                        type="button"
+                        onClick={() => setOpen((o) => !o)}
+                        aria-expanded={open}
+                        aria-label={open ? "Nascondi i dettagli del rating" : "Come si calcola questo rating"}
+                        title={open ? "Nascondi dettagli" : "Perché questo rating?"}
+                        className={`w-6! h-6! p-0! rounded-full! border-0! flex items-center justify-center transition-colors ${
+                            open ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-blue-50 hover:text-blue-600"
+                        }`}
+                    >
+                        <InformationCircleIcon className="w-4 h-4" />
+                    </button>
+                </span>
                 <span className="text-2xl font-bold text-slate-900 leading-none">
                     {totale}
                     <span className="text-sm text-slate-400 font-normal">/100</span>
@@ -71,10 +90,20 @@ export default function RatingBreakdown({ dettaglio, storico, curriculumPath, on
                         {v.punti} {v.etichetta.toLowerCase()}
                     </span>
                 ))}
-                {" "}= <strong className="text-slate-700">{totale}</strong>
-                <span className="block text-slate-400">
-                    Linea tratteggiata: {max_dichiarato} è il massimo con dati solo dichiarati. Oltre si sale verificandoli con documenti.
-                </span>
+            </p>
+            {!open && guadagno > 0 && (
+                <button
+                    type="button"
+                    onClick={() => setOpen(true)}
+                    className="mt-2 p-0! border-0! bg-transparent text-xs font-semibold text-green-700 hover:underline"
+                >
+                    Puoi guadagnare fino a +{guadagno} punti →
+                </button>
+            )}
+
+            {open && (<>
+            <p className="mt-2 text-[11px] text-slate-400">
+                Linea tratteggiata: {max_dichiarato} è il massimo con dati solo dichiarati. Oltre si sale verificandoli con documenti.
             </p>
 
             {/* Il perché, voce per voce */}
@@ -194,6 +223,7 @@ export default function RatingBreakdown({ dettaglio, storico, curriculumPath, on
                     </p>
                 </div>
             </details>
+            </>)}
         </div>
     );
 }

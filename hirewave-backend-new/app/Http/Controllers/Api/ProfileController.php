@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Support\Abbonamento;
 use App\Support\RatingTecnico;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +18,8 @@ class ProfileController extends Controller
         $isTalent = $user->role !== 'COMPANY' && $user->onboarding_completato;
 
         return response()->json([
-            'user' => $user,
+            'user' => array_merge($user->toArray(), ['piano' => Abbonamento::attivo($user)]),
+            'abbonamento' => Abbonamento::stato($user),
             // Il perché del rating e le sue ultime variazioni, solo al proprietario
             'rating_dettaglio' => $isTalent ? RatingTecnico::dettaglio($user) : null,
             'rating_storico' => $isTalent

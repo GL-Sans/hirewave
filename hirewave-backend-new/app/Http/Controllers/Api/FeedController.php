@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Post;
+use App\Support\Abbonamento;
 use App\Support\ProfileAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -42,8 +43,15 @@ class FeedController extends Controller
             // Aziende sempre visibili; lavoratori anonimi salvo sblocco dell'azienda
             ->map(fn ($post) => array_merge(
                 $post->makeHidden('user')->toArray(),
-                ['user' => ProfileAccess::present($viewer, $post->user, $unlockedIds)]
-            ));
+                [
+                    'user' => ProfileAccess::present($viewer, $post->user, $unlockedIds),
+                    // Piano Boost: i post del lavoratore sono sponsorizzati
+                    'sponsored' => (bool) $post->sponsored || Abbonamento::attivo($post->user) === 'boost',
+                ]
+            ))
+            // Sponsorizzati in cima, il resto resta dal più recente
+            ->sortByDesc('sponsored')
+            ->values();
 
         return response()->json($posts);
     }

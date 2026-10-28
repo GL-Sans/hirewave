@@ -14,6 +14,7 @@ interface User {
     is_admin?: boolean;
     badge?: string;
     rating_tecnico?: number;
+    piano?: "premium" | "boost" | null;
 }
 
 interface RegisterData {

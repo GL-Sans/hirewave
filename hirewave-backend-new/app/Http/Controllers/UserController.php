@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 use App\Http\Controllers\Api\ConnectionController;
 use App\Models\User;
+use App\Support\Abbonamento;
 use App\Support\ProfileAccess;
 use Illuminate\Support\Facades\Auth;
 
@@ -15,11 +16,13 @@ class UserController extends Controller
 
         $talents = User::whereIn('role', ['WORKER', 'PRO'])
             ->where('id', '!=', $viewer->id)
-            ->select('id', 'first_name', 'last_name', 'role', 'profile_image', 'badge', 'rating_tecnico', 'settore', 'skills', 'curriculum_public', 'livello_istruzione')
-            // Le aziende cercano per rating: i migliori per primi, i verificati a parità
-            ->orderByDesc('rating_tecnico')
-            ->orderByRaw("badge = 'verde' desc")
+            ->select('id', 'first_name', 'last_name', 'role', 'profile_image', 'badge', 'rating_tecnico', 'settore', 'skills', 'curriculum_public', 'livello_istruzione', 'abbonamento', 'abbonamento_scade_at')
             ->get()
+            // Boost in cima, poi Premium (business plan, par. 8.1); a parità di
+            // piano i rating migliori per primi e i verificati davanti
+            ->sort(fn ($a, $b) => [Abbonamento::priorita($b), $b->rating_tecnico, $b->badge === 'verde']
+                <=> [Abbonamento::priorita($a), $a->rating_tecnico, $a->badge === 'verde'])
+            ->values()
             ->map(function ($user) use ($viewer, $unlockedIds, $savedIds) {
                 // Foto e cognome solo se sbloccato (prima la foto veniva sempre inviata)
                 $base = ProfileAccess::present($viewer, $user, $unlockedIds);
@@ -32,6 +35,9 @@ class UserController extends Controller
                     'skills' => $user->curriculum_public ? ($user->skills ?? []) : [],
                     'unlocked' => in_array($user->id, $unlockedIds, true),
                     'saved' => in_array($user->id, $savedIds, true),
+                    'can_unlock' => ProfileAccess::canUnlock($viewer, $user),
+                    'unlock_price' => ProfileAccess::unlockPrice($user),
+                    'piano' => Abbonamento::attivo($user),
                 ]);
             });
 

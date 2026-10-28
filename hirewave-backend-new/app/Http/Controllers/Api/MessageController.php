@@ -66,7 +66,29 @@ class MessageController extends Controller
             'contact' => $this->presentUser($me, $other),
             'messages' => $messages,
             'can_send' => $this->canMessage($me, $other),
+            'sblocco' => $this->offertaSblocco($me, $other),
         ]);
+    }
+
+    /**
+     * Sblocco direttamente dalla chat: chi ti ha scritto si sblocca senza
+     * passare dai Talenti. Mostra gli stessi dati visibili prima dello sblocco.
+     */
+    private function offertaSblocco(User $me, User $other): ?array
+    {
+        if (!ProfileAccess::canUnlock($me, $other) || ProfileAccess::isUnlocked($me->id, $other->id)) {
+            return null;
+        }
+
+        return [
+            'prezzo' => ProfileAccess::unlockPrice($other),
+            'badge' => $other->badge,
+            'rating_tecnico' => $other->rating_tecnico,
+            'rating_reputazionale' => $other->rating_reputazionale,
+            'settore' => $other->settore,
+            'livello_istruzione' => $other->livello_istruzione,
+            'ral_aspettativa' => $other->ral_aspettativa,
+        ];
     }
 
     public function store(Request $request, $userId)

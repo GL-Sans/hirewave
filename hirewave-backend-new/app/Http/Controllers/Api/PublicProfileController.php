@@ -7,6 +7,7 @@ use App\Models\DocumentoVerifica;
 use App\Models\User;
 use App\Models\Post;
 use App\Models\Review;
+use App\Support\Abbonamento;
 use App\Support\ProfileAccess;
 use App\Support\RatingTecnico;
 use Illuminate\Support\Facades\Auth;
@@ -31,8 +32,10 @@ class PublicProfileController extends Controller
 
         $isOwnProfile = $viewer->id === $worker->id;
         $isCompanyViewer = $viewer->role === 'COMPANY';
+        // Aziende (su lavoratori e professionisti) e professionisti (su lavoratori)
+        $canUnlock = ProfileAccess::canUnlock($viewer, $worker);
 
-        $unlocked = $isCompanyViewer && ProfileAccess::isUnlocked($viewer->id, $worker->id);
+        $unlocked = $canUnlock && ProfileAccess::isUnlocked($viewer->id, $worker->id);
 
         $canSeeIdentity = ProfileAccess::canSeeIdentity($viewer, $worker);
 
@@ -50,7 +53,7 @@ class PublicProfileController extends Controller
 
         // Documenti originali: solo al proprietario e a chi ha la Verifica Premium
         $verificati = DocumentoVerifica::where('user_id', $worker->id)->where('stato', 'verificato')->latest()->get();
-        $premium = $isCompanyViewer && DocumentoController::haVerificaPremium($viewer->id, $worker->id);
+        $premium = $canUnlock && DocumentoController::haVerificaPremium($viewer->id, $worker->id);
 
         return response()->json([
             'user' => [
@@ -82,6 +85,10 @@ class PublicProfileController extends Controller
                 'cv' => $isOwnProfile ? $worker->cv : null,
 
                 'unlocked' => $unlocked,
+                // Pulsante "Sblocca" con il prezzo giusto (badge grigio o verde)
+                'can_unlock' => $canUnlock && !$unlocked,
+                'unlock_price' => ProfileAccess::unlockPrice($worker),
+                'piano' => $worker->role === 'COMPANY' ? null : Abbonamento::attivo($worker),
                 'unlock_expires_at' => $unlocked
                     ? ProfileAccess::unlockExpiresAt($viewer->id, $worker->id)
                     : null,

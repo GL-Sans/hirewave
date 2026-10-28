@@ -6,15 +6,19 @@ use App\Http\Controllers\Controller;
 use App\Models\Review;
 use App\Models\User;
 use App\Notifications\HireWaveNotification;
+use App\Support\ProfileAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class ReviewController extends Controller
 {
-    // Recensioni libere verso chiunque, tranne se stessi
+    // Rating reputazionale (business plan): recensisce solo chi ha pagato lo
+    // sblocco del profilo, azienda o professionista. Anche a sblocco scaduto,
+    // perché la recensione arriva dopo l'ingaggio.
     public static function canReview(User $reviewer, User $target): bool
     {
-        return $reviewer->id !== $target->id;
+        return ProfileAccess::canUnlock($reviewer, $target)
+            && ProfileAccess::everUnlocked($reviewer->id, $target->id);
     }
 
     public function store(Request $request, $workerId)
@@ -28,7 +32,7 @@ class ReviewController extends Controller
 
         if (!self::canReview(Auth::user(), $target)) {
             return response()->json([
-                'message' => 'Non puoi recensire il tuo profilo.',
+                'message' => 'Puoi recensire solo i profili che hai sbloccato.',
             ], 403);
         }
 

@@ -6,7 +6,9 @@ import FeedCard from "../components/FeedCard";
 import type { FeedPost } from "../types/Feed";
 import { useAuth } from "../context/AuthContext";
 import { profileIdFromParam, profilePath } from "../utils/profilePath";
-import { companySizeLabel, istruzioneLabel, roleLabel, unlockPrice, VERIFICA_PREMIUM_PRICE } from "../utils/labels";
+import { companySizeLabel, euro, istruzioneLabel, PIANI, roleLabel, unlockPrice, VERIFICA_PREMIUM_PRICE } from "../utils/labels";
+import type { Piano } from "../utils/labels";
+import { avviaSblocco, messaggioErrore } from "../utils/sblocco";
 import RatingBreakdown from "../components/RatingBreakdown";
 import DocumentiVerifica from "../components/DocumentiVerifica";
 import type { Documento, DocumentoPreset, RatingDettaglio, RatingStorico } from "../types/Rating";
@@ -37,6 +39,8 @@ type Review = {
     reviewer?: { id: number; first_name: string };
 };
 
+const TIPI_CARICA = ["istruzione", "esperienza", "certificazione"] as const;
+
 function Stars({ value, size = "w-4 h-4" }: { value: number; size?: string }) {
     return (
         <span className="inline-flex gap-0.5">
@@ -54,11 +58,35 @@ function Stars({ value, size = "w-4 h-4" }: { value: number; size?: string }) {
     );
 }
 
+// Riga etichetta/valore dei riquadri informativi
+function Info({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div className="flex justify-between gap-4">
+            <span>{label}</span>
+            <span className="font-medium text-slate-700 text-right min-w-0 break-words">{children}</span>
+        </div>
+    );
+}
+
+function PianoPill({ piano }: { piano?: Piano | null }) {
+    if (!piano) return null;
+    return piano === "boost" ? (
+        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
+            ⚡ Sponsor
+        </span>
+    ) : (
+        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-violet-100 text-violet-700 border border-violet-200">
+            ★ Premium
+        </span>
+    );
+}
+
 export default function ProfilePage() {
     const { name } = useParams();
     const [user, setUser] = useState<any>(null);
     const [posts, setPosts] = useState<FeedPost[]>([]);
     const [loading, setLoading] = useState(true);
+    const [reloadKey, setReloadKey] = useState(0);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [uploadingCv, setUploadingCv] = useState(false);
     const [isEditingDescription, setIsEditingDescription] = useState(false);
@@ -83,22 +111,30 @@ export default function ProfilePage() {
 
     useEffect(() => {
         const fetchProfile = async () => {
-            setLoading(true);
+            // Ricaricando dopo uno sblocco la pagina resta visibile (niente schermata di caricamento)
+            if (reloadKey === 0) setLoading(true);
             try {
-                // Ritorno dal checkout (Verifica Premium): conferma il pagamento prima di caricare
+                // Ritorno dal checkout Stripe: conferma il pagamento prima di caricare
                 const params = new URLSearchParams(window.location.search);
                 const sessionId = params.get("session_id");
                 if (sessionId) {
                     try {
-                        await axiosClient.post("/api/stripe/confirm", { session_id: sessionId });
-                        setNotice("Verifica Premium attiva: ora puoi scaricare i documenti originali.");
+                        const res = await axiosClient.post("/api/stripe/confirm", { session_id: sessionId });
+                        setNotice(res.data.prodotto === "verifica_premium"
+                            ? "Verifica Premium attiva: ora puoi scaricare i documenti originali."
+                            : "Profilo sbloccato: nome, contatti e chat sono disponibili per 30 giorni.");
                     } catch (err) {
                         console.error("Errore conferma pagamento:", err);
                     }
                 } else if (params.get("verifica") === "ok") {
                     setNotice("Verifica Premium attiva (modalità demo): ora puoi scaricare i documenti originali.");
                 }
-                if (sessionId || params.get("verifica")) {
+                // Link del tutor: /profile?carica=istruzione apre il caricamento documento
+                const carica = params.get("carica");
+                if (carica && (TIPI_CARICA as readonly string[]).includes(carica)) {
+                    setUploadPreset({ tipo: carica as DocumentoPreset["tipo"] });
+                }
+                if (sessionId || params.get("verifica") || carica) {
                     window.history.replaceState(null, "", window.location.pathname);
                 }
 
@@ -139,7 +175,7 @@ export default function ProfilePage() {
         };
 
         fetchProfile();
-    }, [name, isMyProfile, loggedUser?.id]);
+    }, [name, isMyProfile, loggedUser?.id, reloadKey]);
 
     useEffect(() => {
         if (user) {
@@ -161,7 +197,7 @@ export default function ProfilePage() {
             const res = await axiosClient.post("/api/me/image", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             });
-            setUser(res.data.user);
+            setUser((u: any) => ({ ...u, ...res.data.user }));
             await fetchUser();
         } catch (err) {
             console.error("Errore caricamento immagine:", err);
@@ -184,7 +220,7 @@ export default function ProfilePage() {
             const res = await axiosClient.post("/api/me/cv", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             });
-            setUser(res.data.user);
+            setUser((u: any) => ({ ...u, ...res.data.user }));
             await fetchUser();
         } catch (err) {
             console.error("Errore caricamento CV:", err);
@@ -202,7 +238,7 @@ export default function ProfilePage() {
             const res = await axiosClient.put("/api/me/description", {
                 description: descriptionText,
             });
-            setUser(res.data.user);
+            setUser((u: any) => ({ ...u, ...res.data.user }));
             await fetchUser();
             setIsEditingDescription(false);
         } catch (err) {
@@ -216,13 +252,14 @@ export default function ProfilePage() {
     const handleUnlock = async () => {
         setUnlocking(true);
         try {
-            const res = await axiosClient.post("/api/stripe/checkout", {
-                worker_id: user.id,
-            });
-            if (res.data.url) window.location.href = res.data.url;
+            const fatto = await avviaSblocco(user.id, "profile");
+            if (fatto) {
+                setNotice("Profilo sbloccato (pagamento demo): nome, contatti e chat disponibili per 30 giorni.");
+                setReloadKey((k) => k + 1);
+            }
         } catch (err) {
-            console.error("Errore checkout:", err);
-            alert("Errore durante l'avvio del pagamento.");
+            alert(messaggioErrore(err));
+        } finally {
             setUnlocking(false);
         }
     };
@@ -234,16 +271,22 @@ export default function ProfilePage() {
                 worker_id: user.id,
                 prodotto: "verifica_premium",
             });
-            if (res.data.url) window.location.href = res.data.url;
+            if (res.data.demo) {
+                setNotice("Verifica Premium attiva (modalità demo): ora puoi scaricare i documenti originali.");
+                setReloadKey((k) => k + 1);
+            } else if (res.data.url) {
+                window.location.href = res.data.url;
+            }
         } catch (err: any) {
-            alert(err?.response?.data?.message ?? "Errore durante l'avvio del pagamento.");
+            alert(messaggioErrore(err));
+        } finally {
             setBuyingPremium(false);
         }
     };
 
     // Dopo upload o eliminazione di un documento: rating, badge e storico aggiornati
     const handleDocumentiChanged = async (data: { user: any; rating_dettaglio: RatingDettaglio }) => {
-        setUser(data.user);
+        setUser((u: any) => ({ ...u, ...data.user }));
         setRatingDettaglio(data.rating_dettaglio);
         const res = await axiosClient.get("/api/me");
         setRatingStorico(res.data.rating_storico ?? []);
@@ -283,22 +326,8 @@ export default function ProfilePage() {
     const handleDownloadCv = async (e: React.MouseEvent) => {
         e.preventDefault();
         try {
-            const response = await axiosClient.get("/api/me/cv/download", {
-                responseType: "blob",
-            });
-
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement("a");
-            link.href = url;
-
-            // Extract filename from user.cv if possible, else generic
             const filename = user.cv ? user.cv.split("/").pop() : "cv_hirewave.pdf";
-            link.setAttribute("download", filename || "cv_hirewave.pdf");
-
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
+            await scaricaFile("/api/me/cv/download", filename || "cv_hirewave.pdf");
         } catch (err) {
             console.error("Errore nel download del CV:", err);
             alert("Errore durante il download del CV.");
@@ -307,8 +336,19 @@ export default function ProfilePage() {
 
     if (loading)
         return (
-            <div className="p-8 text-center text-gray-500 animate-pulse">
-                Caricamento profilo…
+            <div className="max-w-5xl mx-auto">
+                <div className="bg-white rounded-2xl border border-gray-100 grid md:grid-cols-[260px_1fr] animate-pulse">
+                    <div className="p-6 flex flex-col items-center gap-3">
+                        <div className="w-32 h-32 rounded-full bg-slate-200" />
+                        <div className="h-5 w-32 bg-slate-200 rounded" />
+                        <div className="h-3 w-20 bg-slate-100 rounded" />
+                    </div>
+                    <div className="p-6 space-y-3">
+                        <div className="h-4 w-3/4 bg-slate-100 rounded" />
+                        <div className="h-24 bg-slate-100 rounded-xl" />
+                        <div className="h-20 bg-slate-100 rounded-xl" />
+                    </div>
+                </div>
             </div>
         );
     if (!user)
@@ -321,25 +361,16 @@ export default function ProfilePage() {
     const profileImageUrl = user.profile_image
         ? `/storage/${user.profile_image}`
         : null;
+    const isTalent = user.role !== "COMPANY";
+    const reviewAvg = reviews.length ? reviews.reduce((s, r) => s + r.stars, 0) / reviews.length : 0;
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
-            {/* Header / Cover Area */}
+        <div className="max-w-5xl mx-auto space-y-6">
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
-                <div className="px-6 py-4 md:px-8 md:py-6">
-                    {isMyProfile && (
-                        <div className="flex justify-end mb-2">
-                            <button
-                                onClick={logout}
-                                className="text-sm text-red-600 font-semibold border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50"
-                            >
-                                Logout
-                            </button>
-                        </div>
-                    )}
-
-                    <div className="flex flex-col md:flex-row items-center md:items-end mb-4 gap-4">
-                        <div className="group w-28 h-28 md:w-32 md:h-32 rounded-full border-4 border-white overflow-hidden bg-gray-50 shadow-md relative flex items-center justify-center">
+                <div className="grid md:grid-cols-[260px_minmax(0,1fr)]">
+                    {/* ── Colonna sinistra: identità e azioni ── */}
+                    <aside className="p-6 flex flex-col items-center text-center gap-3 border-b md:border-b-0 md:border-r border-gray-100 bg-slate-50/40">
+                        <div className="group w-32 h-32 rounded-full border-4 border-white overflow-hidden bg-gray-50 shadow-md relative flex items-center justify-center">
                             {profileImageUrl ? (
                                 <img
                                     src={profileImageUrl}
@@ -349,46 +380,18 @@ export default function ProfilePage() {
                             ) : (
                                 <UserIcon className="w-16 h-16 text-gray-300" />
                             )}
-                            {user.rating_reputazionale > 0 && (
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 py-1 flex justify-center gap-0.5">
-                                    {[1, 2, 3, 4, 5].map((s) => (
-                                        <svg
-                                            key={s}
-                                            className={`w-3 h-3 ${s <= Math.round(user.rating_reputazionale) ? "text-yellow-400" : "text-gray-400"}`}
-                                            fill="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                                        </svg>
-                                    ))}
-                                </div>
-                            )}
                             {isMyProfile && (
                                 <div
                                     className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                                     onClick={() => fileInputRef.current?.click()}
+                                    title="Cambia foto"
                                 >
                                     {uploadingImage ? (
                                         <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                     ) : (
-                                        <svg
-                                            className="w-8 h-8 text-white"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                                            />
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                                            />
+                                        <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                                         </svg>
                                     )}
                                 </div>
@@ -403,92 +406,203 @@ export default function ProfilePage() {
                                 onChange={handleImageChange}
                             />
                         )}
-                    </div>
 
-                    <div className="text-center md:text-left flex-1 pb-2">
-                        <div className="flex flex-col items-center md:items-start gap-2">
-                            <h1 className="text-2xl font-bold text-gray-900 break-words max-w-full">
+                        <div className="space-y-1 max-w-full">
+                            <h1 className="text-xl font-bold text-gray-900 break-words">
                                 {user.first_name}
                                 {user.last_name ? ` ${user.last_name}` : ""}
                             </h1>
-                            <p className="text-sm text-slate-500">
-                                {roleLabel(user.role)}
-                            </p>
-                            <Link
-                                to={`${profilePath(user)}/curriculum`}
-                                className="text-sm text-blue-600 font-medium hover:underline"
-                            >
-                                Curriculum
-                            </Link>
+                            <p className="text-sm text-slate-500">{roleLabel(user.role)}</p>
+                        </div>
+
+                        <div className="flex flex-wrap justify-center gap-1.5">
                             {user.badge && user.badge !== "none" && (
                                 <span
-                                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide ${
+                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide ${
                                         user.badge === "verde"
                                             ? "bg-green-100 text-green-700 border border-green-200"
                                             : "bg-gray-100 text-gray-600 border border-gray-200"
                                     }`}
                                 >
-                                    <span
-                                        className={`w-2 h-2 rounded-full ${user.badge === "verde" ? "bg-green-500" : "bg-gray-400"}`}
-                                    ></span>
-                                    {user.badge === "verde"
-                                        ? "Certificato"
-                                        : "Dichiarato"}
+                                    <span className={`w-2 h-2 rounded-full ${user.badge === "verde" ? "bg-green-500" : "bg-gray-400"}`}></span>
+                                    {user.badge === "verde" ? "Certificato" : "Dichiarato"}
                                 </span>
                             )}
-                            {user.role === "COMPANY" &&
-                                (user.settore || user.dimensione_azienda || user.anni_attivita != null || user.anni_esperienza != null) && (
-                                <div className="mt-3 border border-slate-200 rounded-xl p-4 max-w-sm w-full space-y-1.5 text-xs text-slate-500">
-                                    <span className="text-sm font-semibold text-slate-700 block mb-2">
-                                        Azienda
-                                    </span>
-                                    {user.settore && (
-                                        <div className="flex justify-between gap-4">
-                                            <span>Settore</span>
-                                            <span className="font-medium text-slate-700 text-right min-w-0 break-words">{user.settore}</span>
-                                        </div>
-                                    )}
-                                    {user.dimensione_azienda && (
-                                        <div className="flex justify-between gap-4">
-                                            <span>Dimensione</span>
-                                            <span className="font-medium text-slate-700 text-right min-w-0 break-words">{companySizeLabel(user.dimensione_azienda)}</span>
-                                        </div>
-                                    )}
+                            <PianoPill piano={user.piano} />
+                        </div>
+
+                        {reviews.length > 0 && (
+                            <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                                <Stars value={reviewAvg} size="w-3.5 h-3.5" />
+                                <span>{reviewAvg.toFixed(1)} · {reviews.length}</span>
+                            </div>
+                        )}
+
+                        <Link
+                            to={`${profilePath(user)}/curriculum`}
+                            className="text-sm text-blue-600 font-medium hover:underline"
+                        >
+                            Curriculum
+                        </Link>
+
+                        {/* Azioni verso un altro profilo */}
+                        {!isMyProfile && (
+                            <div className="w-full space-y-2 pt-1">
+                                {user.can_unlock && (
+                                    <>
+                                        <button
+                                            onClick={handleUnlock}
+                                            disabled={unlocking}
+                                            className="w-full px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50"
+                                        >
+                                            {unlocking
+                                                ? "Sblocco in corso…"
+                                                : `Sblocca · €${user.unlock_price ? euro(user.unlock_price) : unlockPrice(user.badge)}`}
+                                        </button>
+                                        <p className="text-[11px] text-slate-400">
+                                            Nome, contatti e chat per 30 giorni.{" "}
+                                            {user.badge === "verde" ? "Dati verificati con documenti." : "Dati dichiarati, non ancora verificati."}
+                                        </p>
+                                    </>
+                                )}
+                                {user.can_contact && (
+                                    <Link
+                                        to={`/chat?to=${user.id}`}
+                                        className="flex justify-center w-full px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-700"
+                                    >
+                                        Scrivi un messaggio
+                                    </Link>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Azioni sul mio profilo */}
+                        {isMyProfile && (
+                            <div className="w-full space-y-2 pt-1">
+                                {user.cv && (
+                                    <button
+                                        onClick={handleDownloadCv}
+                                        className="w-full px-4 py-2 bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm font-medium rounded-xl hover:bg-indigo-100"
+                                    >
+                                        Scarica CV
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => cvInputRef.current?.click()}
+                                    disabled={uploadingCv}
+                                    className="w-full px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 disabled:opacity-50"
+                                >
+                                    {uploadingCv ? "Caricamento..." : user.cv ? "Aggiorna CV" : "Carica CV"}
+                                </button>
+                                <input
+                                    type="file"
+                                    ref={cvInputRef}
+                                    className="hidden"
+                                    accept=".pdf,.doc,.docx"
+                                    onChange={handleCvChange}
+                                />
+                                {isTalent && (
+                                    <Link
+                                        to="/abbonamenti"
+                                        className={`flex justify-center w-full px-4 py-2 text-sm font-semibold rounded-xl border ${
+                                            user.piano
+                                                ? "bg-white border-violet-200 text-violet-700 hover:bg-violet-50"
+                                                : "bg-gradient-to-r from-violet-600 to-blue-600 text-white border-transparent hover:opacity-90"
+                                        }`}
+                                    >
+                                        {user.piano ? `Piano ${PIANI[user.piano as Piano].nome}` : "Passa a Premium"}
+                                    </Link>
+                                )}
+                                <button
+                                    onClick={logout}
+                                    className="w-full text-sm text-red-600 font-semibold border border-red-200 px-4 py-2 rounded-xl hover:bg-red-50"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        )}
+                    </aside>
+
+                    {/* ── Colonna destra: informazioni ── */}
+                    <section className="p-6 md:p-8 space-y-4 min-w-0">
+                        {notice && (
+                            <p className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-xl px-3 py-2">{notice}</p>
+                        )}
+
+                        {/* Descrizione */}
+                        {isEditingDescription ? (
+                            <div>
+                                <textarea
+                                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                    rows={4}
+                                    value={descriptionText}
+                                    onChange={(e) => setDescriptionText(e.target.value)}
+                                    placeholder="Aggiungi una descrizione..."
+                                    disabled={savingDescription}
+                                />
+                                <div className="mt-2 flex gap-2">
+                                    <button
+                                        onClick={handleSaveDescription}
+                                        disabled={savingDescription}
+                                        className="px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded hover:bg-indigo-700 disabled:opacity-50"
+                                    >
+                                        {savingDescription ? "Salvataggio..." : "Salva"}
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setIsEditingDescription(false);
+                                            setDescriptionText(user.description || "");
+                                        }}
+                                        disabled={savingDescription}
+                                        className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded hover:bg-gray-200 disabled:opacity-50"
+                                    >
+                                        Annulla
+                                    </button>
+                                </div>
+                            </div>
+                        ) : user.description ? (
+                            <p
+                                className={`text-sm text-gray-700 whitespace-pre-wrap ${isMyProfile ? "cursor-pointer hover:bg-slate-50 rounded-lg -m-1 p-1" : ""}`}
+                                onClick={() => isMyProfile && setIsEditingDescription(true)}
+                                title={isMyProfile ? "Modifica la descrizione" : undefined}
+                            >
+                                {user.description}
+                            </p>
+                        ) : (
+                            isMyProfile && (
+                                <button
+                                    onClick={() => setIsEditingDescription(true)}
+                                    className="p-0! border-0! bg-transparent text-sm text-indigo-600 font-medium hover:text-indigo-800"
+                                >
+                                    + Aggiungi una descrizione
+                                </button>
+                            )
+                        )}
+
+                        <div className={`grid gap-4 ${isTalent && ratingDettaglio ? "lg:grid-cols-2" : ""}`}>
+                            {/* Dati aziendali pubblici */}
+                            {!isTalent && (user.settore || user.dimensione_azienda || user.anni_attivita != null || user.anni_esperienza != null) && (
+                                <div className="border border-slate-200 rounded-xl p-4 space-y-1.5 text-xs text-slate-500">
+                                    <span className="text-sm font-semibold text-slate-700 block mb-2">Azienda</span>
+                                    {user.settore && <Info label="Settore">{user.settore}</Info>}
+                                    {user.dimensione_azienda && <Info label="Dimensione">{companySizeLabel(user.dimensione_azienda)}</Info>}
                                     {(user.anni_attivita ?? user.anni_esperienza) != null && (
-                                        <div className="flex justify-between gap-4">
-                                            <span>Attiva da</span>
-                                            <span className="font-medium text-slate-700 text-right min-w-0 break-words">{user.anni_attivita ?? user.anni_esperienza} anni</span>
-                                        </div>
+                                        <Info label="Attiva da">{user.anni_attivita ?? user.anni_esperienza} anni</Info>
                                     )}
                                 </div>
                             )}
+
                             {/* Dati di valutazione visibili prima dello sblocco (business plan, par. 5.1) */}
-                            {user.role !== "COMPANY" && (user.settore || user.livello_istruzione || user.ral_aspettativa) && (
-                                <div className="mt-3 border border-slate-200 rounded-xl p-4 max-w-md w-full space-y-1.5 text-xs text-slate-500">
-                                    <span className="text-sm font-semibold text-slate-700 block mb-2">
-                                        Profilo professionale
-                                    </span>
-                                    {user.settore && (
-                                        <div className="flex justify-between gap-4">
-                                            <span>Settore</span>
-                                            <span className="font-medium text-slate-700 text-right min-w-0 break-words">{user.settore}</span>
-                                        </div>
-                                    )}
-                                    {user.livello_istruzione && (
-                                        <div className="flex justify-between gap-4">
-                                            <span>Titolo di studio</span>
-                                            <span className="font-medium text-slate-700 text-right">{istruzioneLabel(user.livello_istruzione)}</span>
-                                        </div>
-                                    )}
-                                    {user.ral_aspettativa && (
-                                        <div className="flex justify-between gap-4">
-                                            <span>Retribuzione attesa</span>
-                                            <span className="font-medium text-slate-700 text-right min-w-0 break-words">{user.ral_aspettativa}</span>
-                                        </div>
-                                    )}
+                            {isTalent && (user.settore || user.livello_istruzione || user.ral_aspettativa) && (
+                                <div className="border border-slate-200 rounded-xl p-4 space-y-1.5 text-xs text-slate-500">
+                                    <span className="text-sm font-semibold text-slate-700 block mb-2">Profilo professionale</span>
+                                    {user.settore && <Info label="Settore">{user.settore}</Info>}
+                                    {user.livello_istruzione && <Info label="Titolo di studio">{istruzioneLabel(user.livello_istruzione)}</Info>}
+                                    {user.ral_aspettativa && <Info label="Retribuzione attesa">{user.ral_aspettativa}</Info>}
                                 </div>
                             )}
-                            {user.role !== "COMPANY" && ratingDettaglio && (
+
+                            {isTalent && ratingDettaglio && (
                                 <RatingBreakdown
                                     dettaglio={ratingDettaglio}
                                     storico={isMyProfile ? ratingStorico : undefined}
@@ -498,270 +612,70 @@ export default function ProfilePage() {
                             )}
                         </div>
 
-                        {/* Description Section */}
-                        {isEditingDescription ? (
-                            <div className="mt-3 max-w-2xl mx-auto md:mx-0 text-left">
-                                <textarea
-                                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                    rows={4}
-                                    value={descriptionText}
-                                    onChange={(e) =>
-                                        setDescriptionText(e.target.value)
-                                    }
-                                    placeholder="Aggiungi una descrizione..."
-                                    disabled={savingDescription}
-                                />
-                                <div className="mt-2 flex gap-2 justify-center md:justify-start">
-                                    <button
-                                        onClick={handleSaveDescription}
-                                        disabled={savingDescription}
-                                        className="px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded hover:bg-indigo-700 disabled:opacity-50"
-                                    >
-                                        {savingDescription
-                                            ? "Salvataggio..."
-                                            : "Salva"}
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setIsEditingDescription(false);
-                                            setDescriptionText(
-                                                user.description || "",
-                                            );
-                                        }}
-                                        disabled={savingDescription}
-                                        className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded hover:bg-gray-200 disabled:opacity-50"
-                                    >
-                                        Annulla
-                                    </button>
+                        {/* Contatti, visibili dopo lo sblocco o con curriculum pubblico */}
+                        {!isMyProfile && (user.email || user.phone) && (
+                            <div className="border border-slate-200 rounded-xl p-4 space-y-1.5 text-xs text-slate-500">
+                                <span className="text-sm font-semibold text-slate-700 block mb-2">Contatti</span>
+                                {user.email && (
+                                    <Info label="Email">
+                                        <a href={`mailto:${user.email}`} className="text-blue-600 hover:underline break-all">{user.email}</a>
+                                    </Info>
+                                )}
+                                {user.phone && (
+                                    <Info label="Telefono">
+                                        <a href={`tel:${user.phone}`} className="text-blue-600 hover:underline">{user.phone}</a>
+                                    </Info>
+                                )}
+                                {user.city && <Info label="Città">{user.city}</Info>}
+                                {user.unlock_expires_at && (
+                                    <p className="text-[11px] text-slate-400 pt-1">
+                                        Profilo sbloccato fino al {new Date(user.unlock_expires_at).toLocaleDateString("it-IT")}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        {user.verifica_premium_disponibile && (
+                            <div className="border border-green-200 bg-green-50 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-green-700">Verifica Premium</p>
+                                    <p className="text-xs text-slate-600 mt-0.5">
+                                        Scarica i documenti originali che hanno certificato questo profilo.
+                                    </p>
                                 </div>
+                                <button
+                                    onClick={handleVerificaPremium}
+                                    disabled={buyingPremium}
+                                    className="px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 border-0!"
+                                >
+                                    {buyingPremium ? "Attivazione…" : `Acquista · €${VERIFICA_PREMIUM_PRICE}`}
+                                </button>
                             </div>
-                        ) : (
-                            <div
-                                className="mt-3 max-w-2xl group cursor-pointer"
-                                onClick={() =>
-                                    isMyProfile && setIsEditingDescription(true)
-                                }
-                            >
-                                {user.description ? (
-                                    <p className="text-sm text-gray-700 whitespace-pre-wrap relative inline-block text-center md:text-left">
-                                        {user.description}
-                                        {isMyProfile && (
-                                            <span className="ml-2 inline-flex opacity-0 group-hover:opacity-100 transition-opacity align-middle">
-                                                <svg
-                                                    className="w-4 h-4 text-gray-400"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke="currentColor"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                                                    />
-                                                </svg>
+                        )}
+
+                        {!isMyProfile && user.verifica_premium && user.documenti?.length > 0 && (
+                            <div className="border border-slate-200 rounded-xl p-4">
+                                <span className="text-sm font-semibold text-slate-700 block mb-2">Documenti verificati</span>
+                                <ul className="space-y-1.5">
+                                    {user.documenti.map((d: Documento) => (
+                                        <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
+                                            <span className="text-slate-700 min-w-0 break-words">
+                                                {d.descrizione}
+                                                {d.anno ? ` · ${d.anno}` : ""}
                                             </span>
-                                        )}
-                                    </p>
-                                ) : (
-                                    isMyProfile && (
-                                        <button className="text-sm text-indigo-600 font-medium hover:text-indigo-800 flex items-center justify-center md:justify-start mx-auto md:mx-0">
-                                            <svg
-                                                className="w-4 h-4 mr-1"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
+                                            <button
+                                                onClick={() => scaricaFile(`/api/documenti/${d.id}/file`, d.nome_file).catch(() => alert("Download non riuscito."))}
+                                                className="shrink-0 text-xs text-blue-600 p-0! border-0! bg-transparent hover:underline"
                                             >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M12 4v16m8-8H4"
-                                                />
-                                            </svg>
-                                            Aggiungi una descrizione
-                                        </button>
-                                    )
-                                )}
+                                                Scarica
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
                         )}
 
-                        {/* Contatti / Sblocco */}
-                        {!isMyProfile && (
-                            <div className="mt-5 border-t border-gray-100 pt-5">
-                                {user.email || user.phone ? (
-                                    <div className="space-y-1 text-sm text-gray-700">
-                                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                                            Contatti
-                                        </h3>
-                                        {user.email && (
-                                            <p>
-                                                Email:{" "}
-                                                <a
-                                                    href={`mailto:${user.email}`}
-                                                    className="text-blue-600 hover:underline break-all"
-                                                >
-                                                    {user.email}
-                                                </a>
-                                            </p>
-                                        )}
-                                        {user.phone && (
-                                            <p>
-                                                Telefono:{" "}
-                                                <a
-                                                    href={`tel:${user.phone}`}
-                                                    className="text-blue-600 hover:underline"
-                                                >
-                                                    {user.phone}
-                                                </a>
-                                            </p>
-                                        )}
-                                        {user.city && <p>Città: {user.city}</p>}
-                                        {user.unlock_expires_at && (
-                                            <p className="text-xs text-slate-400 pt-1">
-                                                Profilo sbloccato fino al{" "}
-                                                {new Date(user.unlock_expires_at).toLocaleDateString("it-IT")}
-                                            </p>
-                                        )}
-                                    </div>
-                                ) : (
-                                    loggedUser?.role === "COMPANY" &&
-                                    user.role !== "COMPANY" &&
-                                    !user.unlocked && (
-                                        <button
-                                            onClick={handleUnlock}
-                                            disabled={unlocking}
-                                            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                                        >
-                                            {unlocking
-                                                ? "Reindirizzamento..."
-                                                : `Sblocca profilo e contatti · €${unlockPrice(user.badge)}`}
-                                        </button>
-                                    )
-                                )}
-                                {loggedUser?.role === "COMPANY" && user.role !== "COMPANY" && !user.unlocked && (
-                                    <p className="text-xs text-slate-400 mt-2">
-                                        Nome, contatti e chat libera per 30 giorni.{" "}
-                                        {user.badge === "verde"
-                                            ? "Profilo certificato: dati verificati con documenti."
-                                            : "Profilo dichiarato: dati non ancora verificati."}
-                                    </p>
-                                )}
-
-                                {notice && <p className="mt-3 text-sm text-green-700">{notice}</p>}
-
-                                {user.verifica_premium_disponibile && (
-                                    <div className="mt-4 border border-green-200 bg-green-100 rounded-xl p-3">
-                                        <p className="text-sm font-semibold text-green-700">Verifica Premium</p>
-                                        <p className="text-xs text-slate-600 mt-0.5">
-                                            Scarica i documenti originali che hanno certificato questo profilo (titoli, attestati, referenze).
-                                        </p>
-                                        <button
-                                            onClick={handleVerificaPremium}
-                                            disabled={buyingPremium}
-                                            className="mt-2 px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 border-0!"
-                                        >
-                                            {buyingPremium ? "Reindirizzamento..." : `Acquista · €${VERIFICA_PREMIUM_PRICE}`}
-                                        </button>
-                                    </div>
-                                )}
-
-                                {user.verifica_premium && user.documenti?.length > 0 && (
-                                    <div className="mt-4">
-                                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                                            Documenti verificati
-                                        </h3>
-                                        <ul className="space-y-1.5">
-                                            {user.documenti.map((d: Documento) => (
-                                                <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
-                                                    <span className="text-slate-700 min-w-0 break-words">
-                                                        {d.descrizione}
-                                                        {d.anno ? ` · ${d.anno}` : ""}
-                                                    </span>
-                                                    <button
-                                                        onClick={() => scaricaFile(`/api/documenti/${d.id}/file`, d.nome_file).catch(() => alert("Download non riuscito."))}
-                                                        className="shrink-0 text-xs text-blue-600 p-0! border-0! bg-transparent hover:underline"
-                                                    >
-                                                        Scarica
-                                                    </button>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                                {user.can_contact && (
-                                    <Link
-                                        to={`/chat?to=${user.id}`}
-                                        className="mt-3 inline-flex px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-700"
-                                    >
-                                        Scrivi un messaggio
-                                    </Link>
-                                )}
-                            </div>
-                        )}
-
-                        {/* CV Section */}
-                        {isMyProfile && (
-                            <div className="mt-5 flex flex-wrap gap-3 justify-center md:justify-start border-t border-gray-100 pt-5">
-                                {user.cv && (
-                                    <button
-                                        onClick={handleDownloadCv}
-                                        className="inline-flex items-center px-4 py-2 bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm font-medium rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
-                                    >
-                                        <svg
-                                            className="w-4 h-4 mr-2"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                            />
-                                        </svg>
-                                        Scarica CV
-                                    </button>
-                                )}
-
-                                <>
-                                    <button
-                                        onClick={() => cvInputRef.current?.click()}
-                                        disabled={uploadingCv}
-                                        className="inline-flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-                                    >
-                                        <svg
-                                            className="w-4 h-4 mr-2 text-gray-500"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                                            />
-                                        </svg>
-                                        {uploadingCv
-                                            ? "Caricamento..."
-                                            : user.cv
-                                              ? "Aggiorna CV"
-                                              : "Carica CV"}
-                                    </button>
-                                    <input
-                                        type="file"
-                                        ref={cvInputRef}
-                                        className="hidden"
-                                        accept=".pdf,.doc,.docx"
-                                        onChange={handleCvChange}
-                                    />
-                                </>
-                            </div>
-                        )}
-
-                        {isMyProfile && user.role !== "COMPANY" && user.onboarding_completato && (
+                        {isMyProfile && isTalent && user.onboarding_completato && (
                             <DocumentiVerifica
                                 livelloIstruzione={user.livello_istruzione}
                                 certificazioni={certificazioniDa(user.certificazioni)}
@@ -770,7 +684,7 @@ export default function ProfilePage() {
                                 onChanged={handleDocumentiChanged}
                             />
                         )}
-                    </div>
+                    </section>
                 </div>
             </div>
 
@@ -780,14 +694,17 @@ export default function ProfilePage() {
                     <h2 className="text-xl font-bold text-slate-800">Recensioni</h2>
                     {reviews.length > 0 && (
                         <div className="flex items-center gap-2 text-sm text-slate-600">
-                            <Stars value={reviews.reduce((s, r) => s + r.stars, 0) / reviews.length} />
+                            <Stars value={reviewAvg} />
                             <span>
-                                {(reviews.reduce((s, r) => s + r.stars, 0) / reviews.length).toFixed(1)} · {reviews.length}{" "}
+                                {reviewAvg.toFixed(1)} · {reviews.length}{" "}
                                 {reviews.length === 1 ? "recensione" : "recensioni"}
                             </span>
                         </div>
                     )}
                 </div>
+                <p className="text-xs text-slate-400 -mt-2">
+                    Solo da aziende e professionisti che hanno sbloccato il profilo.
+                </p>
 
                 {reviews.length === 0 ? (
                     <p className="text-sm text-slate-500">Nessuna recensione per ora.</p>
@@ -796,8 +713,11 @@ export default function ProfilePage() {
                         {reviews.map((r) => (
                             <li key={r.id} className="border border-slate-100 rounded-xl p-3">
                                 <div className="flex items-center justify-between gap-2">
-                                    <span className="text-sm font-semibold text-slate-800">
+                                    <span className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
                                         {r.reviewer?.first_name ?? "Utente"}
+                                        <span className="text-[10px] font-semibold text-green-700 bg-green-50 border border-green-100 rounded-full px-1.5 py-0.5">
+                                            ✓ verificata
+                                        </span>
                                     </span>
                                     <Stars value={r.stars} size="w-3.5 h-3.5" />
                                 </div>
@@ -808,6 +728,12 @@ export default function ProfilePage() {
                             </li>
                         ))}
                     </ul>
+                )}
+
+                {!isMyProfile && !user.can_review && user.can_unlock && (
+                    <p className="text-sm text-slate-500 border-t border-slate-100 pt-4">
+                        Sblocca il profilo per lavorare con {user.first_name} e lasciare una recensione.
+                    </p>
                 )}
 
                 {!isMyProfile && user.can_review && (
@@ -861,43 +787,19 @@ export default function ProfilePage() {
             {/* Posts / Content Area */}
             <div className="bg-slate-50 rounded-2xl">
                 <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <svg
-                        className="w-5 h-5 text-indigo-500"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15"
-                        />
+                    <svg className="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15" />
                     </svg>
                     Attività Recenti
                 </h2>
 
                 {posts.length === 0 ? (
                     <div className="text-center py-10 bg-white rounded-xl border border-dashed border-gray-200 shadow-sm">
-                        <svg
-                            className="mx-auto h-12 w-12 text-gray-300 mb-3"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={1.5}
-                                d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                            />
+                        <svg className="mx-auto h-12 w-12 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        <h3 className="text-sm font-medium text-gray-900">
-                            Nessun post
-                        </h3>
-                        <p className="mt-1 text-sm text-gray-500">
-                            Non ci sono post pubblicati in questo profilo.
-                        </p>
+                        <h3 className="text-sm font-medium text-gray-900">Nessun post</h3>
+                        <p className="mt-1 text-sm text-gray-500">Non ci sono post pubblicati in questo profilo.</p>
                     </div>
                 ) : (
                     <div className="grid md:grid-cols-2 gap-5">
@@ -911,16 +813,8 @@ export default function ProfilePage() {
                                 location={post.location ?? "—"}
                                 timeAgo="—"
                                 sponsored={post.sponsored}
-                                imageUrl={
-                                    post.image
-                                        ? `/storage/${post.image}`
-                                        : undefined
-                                }
-                                tags={
-                                    post.type === "job"
-                                        ? ["Annuncio"]
-                                        : ["Richiesta"]
-                                }
+                                imageUrl={post.image ? `/storage/${post.image}` : undefined}
+                                tags={post.type === "job" ? ["Annuncio"] : ["Richiesta"]}
                                 contractType={post.contract_type ?? "—"}
                                 budget={post.budget ?? "—"}
                                 budgetType={post.budget_type ?? null}

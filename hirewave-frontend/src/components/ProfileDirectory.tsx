@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import axiosClient from "../api/axiosClient";
 import SearchBar from "./SearchBar";
 import TalentCard from "./TalentCard";
@@ -18,6 +18,9 @@ export type DirectoryProfile = {
     skills?: string[];
     rating_tecnico?: number | null;
     livello_istruzione?: string | null;
+    can_unlock?: boolean;
+    unlock_price?: number;
+    piano?: "premium" | "boost" | null;
 };
 
 type Chip = { label: string; value: string };
@@ -68,18 +71,22 @@ export default function ProfileDirectory({ endpoint, searchPlaceholder, emptyTex
     const [settore, setSettore] = useState("Tutti i settori");
     const [filtersOpen, setFiltersOpen] = useState(true);
 
+    const reload = useCallback(async () => {
+        const res = await axiosClient.get(endpoint);
+        setProfiles(res.data ?? []);
+    }, [endpoint]);
+
     useEffect(() => {
         const load = async () => {
             await beforeLoad?.();
             try {
-                const res = await axiosClient.get(endpoint);
-                setProfiles(res.data ?? []);
+                await reload();
             } finally {
                 setLoading(false);
             }
         };
         load();
-    }, [endpoint, beforeLoad]);
+    }, [reload, beforeLoad]);
 
     const filtered = useMemo(() => {
         const q = search.toLowerCase();
@@ -165,7 +172,12 @@ export default function ProfileDirectory({ endpoint, searchPlaceholder, emptyTex
                                 followed={p.followed}
                                 rating={p.rating_tecnico}
                                 istruzione={istruzioneLabel(p.livello_istruzione)}
+                                canUnlock={p.can_unlock}
+                                unlockPrice={p.unlock_price}
+                                piano={p.piano}
                                 onSavedChange={updateSaved}
+                                // Sbloccato in demo: ricarico l'elenco per mostrare nome e foto
+                                onUnlocked={() => reload()}
                             />
                         ))
                 }

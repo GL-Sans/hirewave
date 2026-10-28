@@ -15,6 +15,7 @@ import {
     ArrowRightOnRectangleIcon,
     BellIcon,
     ShieldCheckIcon,
+    SparklesIcon,
 } from "@heroicons/react/24/outline";
 
 // type Props = {
@@ -37,7 +38,8 @@ export default function Navbar() {
                 .then((res) => setUnread(res.data.unread))
                 .catch(() => {});
         load();
-        const t = setInterval(load, 20000);
+        // Solo con la scheda in primo piano
+        const t = setInterval(() => { if (!document.hidden) load(); }, 20000);
         window.addEventListener("notifications:changed", load);
         return () => {
             clearInterval(t);
@@ -190,6 +192,16 @@ export default function Navbar() {
                                     <Cog6ToothIcon className="w-4 h-4 text-slate-400" />
                                     <span>Impostazioni</span>
                                 </Link>
+                                {user && user.role !== "COMPANY" && (
+                                    <Link
+                                        to="/abbonamenti"
+                                        onClick={() => setIsMenuOpen(false)}
+                                        className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                                    >
+                                        <SparklesIcon className="w-4 h-4 text-violet-500" />
+                                        <span>{user.piano ? `Piano ${user.piano === "boost" ? "Boost" : "Premium"}` : "Premium e Boost"}</span>
+                                    </Link>
+                                )}
                                 {user?.is_admin && (
                                     <Link
                                         to="/admin/documenti"

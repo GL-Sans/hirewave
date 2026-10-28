@@ -108,7 +108,7 @@ class DemoSeeder extends Seeder
             'description' => 'Fotografa di eventi e matrimoni.',
         ]);
 
-        $this->talento('davide', 'WORKER', 'Davide', 'Esposito', [
+        $davide = $this->talento('davide', 'WORKER', 'Davide', 'Esposito', [
             'settore' => 'Eventi', 'ral_aspettativa' => 'Meno di €1.000/mese',
             'livello_istruzione' => 'diploma', 'anni_esperienza' => 1, 'certificazioni' => 'Inglese B2',
             'birth_date' => '2004-01-25', 'city' => 'Francavilla al Mare', 'skills' => ['Accoglienza', 'Hostess'],
@@ -144,6 +144,20 @@ class DemoSeeder extends Seeder
         $this->recensione($molo, $antonio, 5, 'Veloce al banco e sempre cordiale con i clienti.');
         $this->recensione($eventi, $federica, 5, 'Ha rifatto il nostro sito e il sistema di prenotazioni in tre settimane.');
 
+        // Anche i professionisti sbloccano i lavoratori: Luca (chef) ha ingaggiato Antonio per un evento
+        DB::table('unlocked_profiles')->insert(['company_id' => $luca->id, 'worker_id' => $antonio->id, 'unlocked_at' => now()->subDays(6)]);
+        $this->recensione($luca, $antonio, 4, 'Ha gestito il bar a un evento privato da 80 persone, preciso e veloce.');
+
+        // Piani dei lavoratori: Boost (primo nei risultati, badge Sponsor) e Premium
+        $sara->forceFill(['abbonamento' => 'boost', 'abbonamento_scade_at' => now()->addDays(21)])->save();
+        $federica->forceFill(['abbonamento' => 'premium', 'abbonamento_scade_at' => now()->addDays(12)])->save();
+
+        // Messaggi da talenti non sbloccati: l'azienda li sblocca dalla chat per rispondere
+        $this->messaggio($marco, $hotel, 'Buongiorno, ho visto l\'annuncio per camerieri di sala. Ho 4 stagioni di esperienza e HACCP, sarei disponibile da giugno.', 50);
+        $this->messaggio($davide, $eventi, 'Salve, sono disponibile come hostess per la fiera di aprile, anche per tutte e 3 le giornate.', 180);
+        $this->messaggio($eventi, $federica, 'Ciao Federica, ci servirebbe una modifica al modulo di prenotazione. Hai tempo questa settimana?', 300);
+        $this->messaggio($federica, $eventi, 'Certo! Mandatemi i dettagli e vi faccio un preventivo entro domani.', 280);
+
         DB::table('company_follows')->insert(['user_id' => $marco->id, 'company_id' => $hotel->id, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('saved_profiles')->insert(['user_id' => $hotel->id, 'saved_user_id' => $marco->id, 'created_at' => now(), 'updated_at' => now()]);
 
@@ -172,6 +186,7 @@ class DemoSeeder extends Seeder
             Storage::disk('local')->delete($path);
         }
         DB::table('unlocked_profiles')->whereIn('company_id', $ids)->orWhereIn('worker_id', $ids)->delete();
+        DB::table('messages')->whereIn('sender_id', $ids)->orWhereIn('receiver_id', $ids)->delete();
         DB::table('notifications')->where('notifiable_type', User::class)->whereIn('notifiable_id', $ids)->delete();
         User::whereIn('id', $ids)->delete();
     }
@@ -247,6 +262,12 @@ class DemoSeeder extends Seeder
     {
         Review::create(['reviewer_id' => $azienda->id, 'worker_id' => $talento->id, 'stars' => $stelle, 'comment' => $testo]);
         $talento->forceFill(['rating_reputazionale' => round(Review::where('worker_id', $talento->id)->avg('stars'), 1)])->save();
+    }
+
+    private function messaggio(User $da, User $a, string $testo, int $minutiFa): void
+    {
+        $quando = now()->subMinutes($minutiFa);
+        DB::table('messages')->insert(['sender_id' => $da->id, 'receiver_id' => $a->id, 'body' => $testo, 'created_at' => $quando, 'updated_at' => $quando]);
     }
 
     private function post(User $autore, string $tipo, string $titolo, string $testo, string $luogo, string $contratto, int $budget, string $budgetTipo): void

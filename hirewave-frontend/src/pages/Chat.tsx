@@ -9,7 +9,8 @@ import { ChatMessage } from "../components/ChatMessage";
 import axiosClient from "../api/axiosClient";
 import { useAuth } from "../context/AuthContext";
 import { profilePath } from "../utils/profilePath";
-import { roleLabel } from "../utils/labels";
+import { euro, istruzioneLabel, roleLabel } from "../utils/labels";
+import { avviaSblocco, confermaRitornoStripe, messaggioErrore } from "../utils/sblocco";
 
 type Contact = {
     id: number;
@@ -17,6 +18,18 @@ type Contact = {
     last_name: string | null;
     role: string;
     profile_image: string | null;
+    badge?: string;
+};
+
+// Dati visibili prima dello sblocco, per decidere senza lasciare la chat
+type OffertaSblocco = {
+    prezzo: number;
+    badge: string;
+    rating_tecnico: number | null;
+    rating_reputazionale: number | null;
+    settore: string | null;
+    livello_istruzione: string | null;
+    ral_aspettativa: string | null;
 };
 
 type Conversation = {
@@ -34,6 +47,70 @@ type ApiMessage = {
 };
 
 const POLL_MS = 4000;
+
+// Aggiornamento periodico solo con la scheda in primo piano (meno richieste, batteria)
+function useVisiblePolling(fn: () => void, ms: number, enabled = true) {
+    useEffect(() => {
+        if (!enabled) return;
+        const t = setInterval(() => { if (!document.hidden) fn(); }, ms);
+        const onVisible = () => { if (!document.hidden) fn(); };
+        document.addEventListener("visibilitychange", onVisible);
+        return () => {
+            clearInterval(t);
+            document.removeEventListener("visibilitychange", onVisible);
+        };
+    }, [fn, ms, enabled]);
+}
+
+function SbloccoCard({ contact, offerta, canSend, onUnlock, unlocking }: {
+    contact: Contact;
+    offerta: OffertaSblocco;
+    canSend: boolean;
+    onUnlock: () => void;
+    unlocking: boolean;
+}) {
+    const verde = offerta.badge === "verde";
+    const dati = [
+        offerta.settore,
+        istruzioneLabel(offerta.livello_istruzione),
+        offerta.ral_aspettativa,
+    ].filter(Boolean);
+
+    return (
+        <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-3">
+            <div className="flex items-center gap-3">
+                <div className="shrink-0 w-12 h-12 rounded-xl bg-white border border-slate-200 flex flex-col items-center justify-center">
+                    <span className="text-base font-bold text-slate-900 leading-none">{offerta.rating_tecnico ?? "—"}</span>
+                    <span className="text-[9px] text-slate-400">rating</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 flex-wrap">
+                        {contact.first_name}
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${verde ? "bg-green-100 text-green-700" : "bg-slate-200 text-slate-600"}`}>
+                            {verde ? "✓ Certificato" : "Dichiarato"}
+                        </span>
+                        {!!offerta.rating_reputazionale && offerta.rating_reputazionale > 0 && (
+                            <span className="text-[11px] text-amber-600 font-semibold">★ {offerta.rating_reputazionale}</span>
+                        )}
+                    </p>
+                    {dati.length > 0 && <p className="text-[11px] text-slate-500 truncate">{dati.join(" · ")}</p>}
+                </div>
+            </div>
+            <button
+                onClick={onUnlock}
+                disabled={unlocking}
+                className="mt-3 w-full py-2.5! bg-blue-600 text-white text-sm font-semibold rounded-xl! border-0! hover:bg-blue-700 disabled:opacity-60"
+            >
+                {unlocking
+                    ? "Sblocco in corso…"
+                    : `${canSend ? "Sblocca nome e contatti" : "Sblocca e rispondi"} · €${euro(offerta.prezzo)}`}
+            </button>
+            <p className="mt-1.5 text-[10px] text-slate-400 text-center">
+                Nome, foto, contatti e chat libera per 30 giorni
+            </p>
+        </div>
+    );
+}
 
 // Su mobile la conversazione è a schermo intero e segue l'area visibile
 // (si restringe quando si apre la tastiera)
@@ -106,6 +183,9 @@ export default function ChatPage() {
     const [message, setMessage] = useState("");
     const [messages, setMessages] = useState<ApiMessage[]>([]);
     const [canSend, setCanSend] = useState(false);
+    const [offerta, setOfferta] = useState<OffertaSblocco | null>(null);
+    const [unlocking, setUnlocking] = useState(false);
+    const [notice, setNotice] = useState("");
     const [sending, setSending] = useState(false);
     const [error, setError] = useState("");
     const [search, setSearch] = useState("");
@@ -130,37 +210,61 @@ export default function ChatPage() {
         try {
             const res = await axiosClient.get(`/api/messages/${contactId}`);
             setSelectedContact(res.data.contact);
-            setMessages(res.data.messages);
+            // Non sovrascrivo i messaggi inviati e non ancora confermati
+            setMessages((prev) => [...res.data.messages, ...prev.filter((m) => m.id < 0)]);
             setCanSend(res.data.can_send);
+            setOfferta(res.data.sblocco ?? null);
         } catch (err) {
             console.error("Errore caricamento messaggi:", err);
         }
     }, []);
 
     // Conversazioni: caricamento iniziale + aggiornamento periodico
-    useEffect(() => {
-        loadConversations();
-        const t = setInterval(loadConversations, POLL_MS * 2);
-        return () => clearInterval(t);
-    }, [loadConversations]);
+    useEffect(() => { loadConversations(); }, [loadConversations]);
+    useVisiblePolling(loadConversations, POLL_MS * 2);
 
-    // Apertura diretta da profilo: /chat?to=ID
+    // Apertura diretta da profilo o notifica: /chat?to=ID (anche al ritorno da Stripe)
     useEffect(() => {
         const to = Number(searchParams.get("to"));
         if (to) {
-            loadMessages(to);
+            confermaRitornoStripe().then((pagato) => {
+                if (pagato) setNotice("Profilo sbloccato: ora puoi rispondere.");
+                loadMessages(to);
+                loadConversations();
+            });
             setShowChatOnMobile(true);
             setSearchParams({}, { replace: true });
         }
-    }, [searchParams, setSearchParams, loadMessages]);
+    }, [searchParams, setSearchParams, loadMessages, loadConversations]);
 
     // Messaggi della conversazione aperta: aggiornamento periodico
     const selectedId = selectedContact?.id;
+    const pollMessages = useCallback(() => { if (selectedId) loadMessages(selectedId); }, [selectedId, loadMessages]);
+    useVisiblePolling(pollMessages, POLL_MS, !!selectedId);
+
+    const handleUnlock = async () => {
+        if (!selectedContact) return;
+        setUnlocking(true);
+        setError("");
+        try {
+            const fatto = await avviaSblocco(selectedContact.id, "chat");
+            if (fatto) {
+                await loadMessages(selectedContact.id);
+                loadConversations();
+                setNotice("Profilo sbloccato (pagamento demo): ora puoi rispondere.");
+            }
+        } catch (err) {
+            setError(messaggioErrore(err));
+        } finally {
+            setUnlocking(false);
+        }
+    };
+
     useEffect(() => {
-        if (!selectedId) return;
-        const t = setInterval(() => loadMessages(selectedId), POLL_MS);
-        return () => clearInterval(t);
-    }, [selectedId, loadMessages]);
+        if (!notice) return;
+        const t = setTimeout(() => setNotice(""), 5000);
+        return () => clearTimeout(t);
+    }, [notice]);
 
     // Scorre solo il contenitore dei messaggi: scrollIntoView spostava tutta la pagina
     useEffect(() => {
@@ -174,22 +278,33 @@ export default function ChatPage() {
 
     const handleSelectContact = (contact: Contact) => {
         setError("");
+        setNotice("");
         setMessages([]);
+        setOfferta(null);
         setSelectedContact(contact);
         setShowChatOnMobile(true);
+        // Il contatore dei non letti si azzera subito, senza aspettare il server
+        setConversations((prev) => prev.map((c) => (c.contact.id === contact.id ? { ...c, unread: 0 } : c)));
         loadMessages(contact.id).then(loadConversations);
     };
 
+    // Invio ottimistico: il messaggio compare subito, il server lo conferma dopo
     const handleSend = async () => {
-        if (!message.trim() || !selectedContact || sending) return;
+        const body = message.trim();
+        if (!body || !selectedContact || sending) return;
+        const tempId = -Date.now();
         setSending(true);
         setError("");
+        setMessage("");
+        setMessages((prev) => [...prev, { id: tempId, sender_id: user!.id, body, created_at: new Date().toISOString() }]);
         try {
-            const res = await axiosClient.post(`/api/messages/${selectedContact.id}`, { body: message });
-            setMessages(prev => [...prev, res.data]);
-            setMessage("");
+            const res = await axiosClient.post(`/api/messages/${selectedContact.id}`, { body });
+            // Se un aggiornamento periodico l'ha già portato, tengo una sola copia
+            setMessages((prev) => prev.filter((m) => m.id !== res.data.id).map((m) => (m.id === tempId ? res.data : m)));
             loadConversations();
         } catch (err: any) {
+            setMessages((prev) => prev.filter((m) => m.id !== tempId));
+            setMessage(body);
             setError(err?.response?.data?.message ?? "Errore durante l'invio del messaggio.");
         } finally {
             setSending(false);
@@ -306,8 +421,18 @@ export default function ChatPage() {
                         </div>
 
                         {/* Input */}
-                        <div className="shrink-0 p-3 bg-white border-t border-slate-100">
-                            {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
+                        <div className="shrink-0 p-3 bg-white border-t border-slate-100 space-y-2">
+                            {notice && <p className="text-xs text-green-700 font-medium">{notice}</p>}
+                            {error && <p className="text-xs text-red-500">{error}</p>}
+                            {offerta && (
+                                <SbloccoCard
+                                    contact={selectedContact}
+                                    offerta={offerta}
+                                    canSend={canSend}
+                                    onUnlock={handleUnlock}
+                                    unlocking={unlocking}
+                                />
+                            )}
                             {canSend ? (
                                 <div className="flex items-center gap-2 bg-slate-100 px-3 py-2 rounded-2xl">
                                     <input
@@ -327,11 +452,11 @@ export default function ChatPage() {
                                     </button>
                                 </div>
                             ) : (
-                                <p className="text-xs text-slate-400 text-center py-2">
-                                    {user?.role === "COMPANY" && selectedContact.role !== "COMPANY"
-                                        ? "Sblocca il profilo per scrivere a questo utente."
-                                        : "Non puoi scrivere a questo utente."}
-                                </p>
+                                !offerta && (
+                                    <p className="text-xs text-slate-400 text-center py-2">
+                                        Non puoi scrivere a questo utente.
+                                    </p>
+                                )
                             )}
                         </div>
                     </>

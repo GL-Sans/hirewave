@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\DocumentoController;
 use App\Http\Controllers\Api\AdminDocumentoController;
+use App\Http\Controllers\Api\TutorController;
 use App\Http\Middleware\EnsureAdmin;
 
 // I limiti (throttle:...) sono definiti in AppServiceProvider::configureRateLimits
@@ -63,6 +64,10 @@ Route::middleware(['web', 'auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/messages/{user}', [MessageController::class, 'store'])
         ->whereNumber('user')->middleware('throttle:messages');
 
+    // Tutor (chat di aiuto)
+    Route::get('/tutor', [TutorController::class, 'index']);
+    Route::post('/tutor', [TutorController::class, 'store'])->middleware('throttle:messages');
+
     // Caricamento file
     Route::middleware('throttle:uploads')->group(function () {
         Route::post('/me/image', [ProfileController::class, 'uploadImage']);
@@ -105,6 +110,9 @@ Route::middleware(['web', 'auth:sanctum', 'throttle:api'])->group(function () {
     Route::middleware('throttle:payments')->group(function () {
         Route::post('/stripe/checkout', [StripeController::class, 'createCheckout']);
         Route::post('/stripe/confirm', [StripeController::class, 'confirm']);
+        // Abbonamenti Premium e Boost dei lavoratori
+        Route::post('/abbonamento', [StripeController::class, 'checkoutAbbonamento']);
+        Route::delete('/abbonamento', [StripeController::class, 'disdiciAbbonamento']);
     });
 
     // Azioni delicate

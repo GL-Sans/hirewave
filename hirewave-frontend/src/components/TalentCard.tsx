@@ -10,6 +10,8 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import axiosClient from "../api/axiosClient";
 import { profilePath } from "../utils/profilePath";
+import { euro } from "../utils/labels";
+import { avviaSblocco, messaggioErrore } from "../utils/sblocco";
 
 // Card unica per le pagine Talenti e Aziende
 type TalentCardProps = {
@@ -26,7 +28,12 @@ type TalentCardProps = {
     // Visibili prima dello sblocco (business plan, par. 5.1)
     rating?: number | null;
     istruzione?: string;
+    // Sblocco possibile per chi guarda (azienda, o professionista su un lavoratore)
+    canUnlock?: boolean;
+    unlockPrice?: number;
+    piano?: "premium" | "boost" | null;
     onSavedChange?: (id: number, saved: boolean) => void;
+    onUnlocked?: (id: number) => void;
 };
 
 function formatRole(role: string) {
@@ -40,7 +47,7 @@ const iconButton =
     "w-8! h-8! p-0! border-0! rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition";
 
 export default function TalentCard(props: TalentCardProps) {
-    const { id, firstName, lastName, role, imageUrl, skills = [], badge, unlocked, rating, istruzione, onSavedChange } = props;
+    const { id, firstName, lastName, role, imageUrl, skills = [], badge, unlocked, rating, istruzione, canUnlock, unlockPrice, piano, onSavedChange, onUnlocked } = props;
     const navigate = useNavigate();
     const { user } = useAuth();
     const isCompanyViewer = user?.role === "COMPANY";
@@ -54,18 +61,16 @@ export default function TalentCard(props: TalentCardProps) {
 
     // Stesse regole della chat: le aziende scrivono ai talenti sbloccati, non ad altre aziende
     const canChat = isCompanyViewer ? !isCompanyCard : true;
-    const showUnlock = isCompanyViewer && !isCompanyCard;
+    const showUnlock = !!canUnlock;
     const showFollow = !isCompanyViewer && isCompanyCard;
 
     const handleUnlock = async (e: React.MouseEvent) => {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await axiosClient.post("/api/stripe/checkout", { worker_id: id });
-            if (res.data.url) window.location.href = res.data.url;
+            if (await avviaSblocco(id, "talents")) onUnlocked?.(id);
         } catch (err: any) {
-            console.error("Errore checkout:", err);
-            alert(err?.response?.data?.message ?? "Errore durante l'avvio del pagamento.");
+            alert(messaggioErrore(err));
         } finally {
             setLoading(false);
         }
@@ -119,8 +124,8 @@ export default function TalentCard(props: TalentCardProps) {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
             )}
 
-            {badge && badge !== "none" && (
-                <div className="absolute top-3 left-3 z-10">
+            <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-1">
+                {badge && badge !== "none" && (
                     <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
                         badge === "verde"
                             ? "bg-green-500 text-white"
@@ -128,8 +133,14 @@ export default function TalentCard(props: TalentCardProps) {
                     }`}>
                         {badge === "verde" ? "✓ Certificato" : "Dichiarato"}
                     </span>
-                </div>
-            )}
+                )}
+                {piano === "boost" && (
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-400 text-amber-950">⚡ Sponsor</span>
+                )}
+                {piano === "premium" && (
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-violet-500 text-white">★ In evidenza</span>
+                )}
+            </div>
 
             <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
                 <button
@@ -143,7 +154,8 @@ export default function TalentCard(props: TalentCardProps) {
                 {canChat && (
                     <button
                         className={iconButton}
-                        onClick={(e) => { e.preventDefault(); navigate(isCompanyViewer && !unlocked ? talentPath : `/chat?to=${id}`); }}
+                        // Se non è sbloccato, la chat propone lo sblocco senza cambiare pagina
+                        onClick={(e) => { e.preventDefault(); navigate(`/chat?to=${id}`); }}
                         aria-label="Scrivi un messaggio"
                         title="Scrivi un messaggio"
                     >
@@ -190,7 +202,7 @@ export default function TalentCard(props: TalentCardProps) {
                             }`}
                             onClick={unlocked ? (e) => e.preventDefault() : handleUnlock}
                             disabled={loading || unlocked}
-                            title={unlocked ? "Profilo sbloccato" : "Sblocca profilo"}
+                            title={unlocked ? "Profilo sbloccato" : `Sblocca profilo · €${unlockPrice ? euro(unlockPrice) : ""}`}
                         >
                             {loading
                                 ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

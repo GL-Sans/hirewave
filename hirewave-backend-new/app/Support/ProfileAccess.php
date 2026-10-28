@@ -10,18 +10,51 @@ use Illuminate\Support\Facades\DB;
  *
  * - il proprietario vede sempre se stesso
  * - i profili azienda sono sempre visibili
- * - un'azienda vede un lavoratore/professionista solo se l'ha sbloccato
+ * - un'azienda vede un lavoratore/professionista solo se l'ha sbloccato,
+ *   un professionista vede un lavoratore solo se l'ha sbloccato
  *   (lo sblocco dura UNLOCK_DAYS giorni)
- * - lavoratori e professionisti tra loro restano anonimi
+ * - per il resto lavoratori e professionisti tra loro restano anonimi
+ *
+ * In unlocked_profiles la colonna company_id è "chi ha sbloccato": un'azienda
+ * oppure un professionista.
  */
 class ProfileAccess
 {
     public const UNLOCK_DAYS = 30;
 
-    /** Id dei profili sbloccati e non scaduti per l'azienda $viewer */
+    /** Chi può pagare lo sblocco di chi */
+    public static function canUnlock(User $viewer, User $owner): bool
+    {
+        if ($viewer->id === $owner->id) {
+            return false;
+        }
+
+        return match ($viewer->role) {
+            'COMPANY' => in_array($owner->role, ['WORKER', 'PRO'], true),
+            'PRO' => $owner->role === 'WORKER',
+            default => false,
+        };
+    }
+
+    /** Prezzo dello sblocco in centesimi (business plan, par. 5.2) */
+    public static function unlockPrice(User $owner): int
+    {
+        return $owner->badge === 'verde' ? 2999 : 1499;
+    }
+
+    /** Ha mai sbloccato il profilo, anche se lo sblocco è scaduto (serve per le recensioni) */
+    public static function everUnlocked(int $viewerId, int $ownerId): bool
+    {
+        return DB::table('unlocked_profiles')
+            ->where('company_id', $viewerId)
+            ->where('worker_id', $ownerId)
+            ->exists();
+    }
+
+    /** Id dei profili sbloccati e non scaduti da $viewer */
     public static function unlockedIds(User $viewer): array
     {
-        if ($viewer->role !== 'COMPANY') {
+        if (!in_array($viewer->role, ['COMPANY', 'PRO'], true)) {
             return [];
         }
 
@@ -67,7 +100,7 @@ class ProfileAccess
         $company = User::find($companyId);
         User::find($workerId)?->notify(new HireWaveNotification(
             'unlock',
-            'Un\'azienda ha sbloccato il tuo profilo',
+            $company->role === 'COMPANY' ? 'Un\'azienda ha sbloccato il tuo profilo' : 'Un professionista ha sbloccato il tuo profilo',
             "{$company->first_name} {$company->last_name} ora può vedere i tuoi contatti e scriverti.",
             "/profile/{$company->id}",
         ));
@@ -80,7 +113,7 @@ class ProfileAccess
             return true;
         }
 
-        if ($viewer->role !== 'COMPANY') {
+        if (!self::canUnlock($viewer, $owner)) {
             return false;
         }
 
