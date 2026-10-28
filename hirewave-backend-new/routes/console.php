@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\User;
+use App\Support\RatingTecnico;
 use App\Support\SecurityLog;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -70,6 +72,27 @@ Artisan::command('security:prune', function () {
     SecurityLog::prune();
     $this->info('Eventi più vecchi di ' . SecurityLog::RETENTION_DAYS . ' giorni eliminati.');
 })->purpose('Elimina gli eventi di sicurezza scaduti');
+
+// php artisan rating:ricalcola — dopo un cambio della formula i valori salvati restano vecchi
+Artisan::command('rating:ricalcola', function () {
+    $righe = [];
+    User::whereIn('role', ['WORKER', 'PRO'])->where('onboarding_completato', true)->each(function (User $u) use (&$righe) {
+        $prima = (int) $u->rating_tecnico;
+        $dopo = RatingTecnico::aggiorna($u, 'Ricalcolo con la formula v' . RatingTecnico::VERSIONE);
+        $righe[] = [$u->id, "{$u->first_name} {$u->last_name}", $prima, $dopo, $u->badge];
+    });
+    $this->table(['Id', 'Utente', 'Prima', 'Dopo', 'Badge'], $righe);
+})->purpose('Ricalcola il rating tecnico di tutti i lavoratori e professionisti');
+
+// php artisan hirewave:admin email@esempio.it [--revoca]
+Artisan::command('hirewave:admin {email} {--revoca}', function (string $email) {
+    $user = User::where('email', $email)->first();
+    if (!$user) {
+        return $this->error("Nessun utente con email $email");
+    }
+    $user->forceFill(['is_admin' => !$this->option('revoca')])->save();
+    $this->info($user->is_admin ? "$email ora è amministratore." : "$email non è più amministratore.");
+})->purpose('Dà o toglie i permessi di revisione dei documenti');
 
 // Con il cron di Laravel attivo (schedule:run) la pulizia è anche giornaliera
 Schedule::command('security:prune')->daily();

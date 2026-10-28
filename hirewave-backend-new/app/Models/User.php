@@ -17,6 +17,11 @@ class User extends Authenticatable
         return $this->hasMany(Post::class);
     }
 
+    public function documenti()
+    {
+        return $this->hasMany(DocumentoVerifica::class);
+    }
+
     /**
      * The attributes that are mass assignable.
      *
@@ -83,6 +88,9 @@ class User extends Authenticatable
             'rating_reputazionale' => 'float',
             'notifications_enabled' => 'boolean',
             'has_password' => 'boolean',
+            'is_admin' => 'boolean',
+            'rating_tecnico' => 'integer',
+            'anni_esperienza' => 'integer',
         ];
     }
 }

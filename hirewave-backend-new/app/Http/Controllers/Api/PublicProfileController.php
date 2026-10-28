@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Post;
 use App\Models\Review;
 use App\Support\ProfileAccess;
+use App\Support\RatingTecnico;
 use Illuminate\Support\Facades\Auth;
 
 class PublicProfileController extends Controller
@@ -59,6 +60,14 @@ class PublicProfileController extends Controller
 
                 // Il rating tecnico non esiste per le aziende
                 'rating_tecnico' => $worker->role === 'COMPANY' ? null : ($worker->rating_tecnico ?? 0),
+                // Il perché del rating, voce per voce. Nomi delle certificazioni
+                // solo a chi ha già accesso ai dati completi
+                'rating_dettaglio' => $worker->role === 'COMPANY' || !$worker->onboarding_completato
+                    ? null
+                    : RatingTecnico::pubblico(RatingTecnico::dettaglio($worker), $isOwnProfile || $unlocked),
+                // Visibile prima dello sblocco (business plan, protocollo di visibilità)
+                'livello_istruzione' => $worker->role === 'COMPANY' ? null : $worker->livello_istruzione,
+                'ral_aspettativa' => $worker->role === 'COMPANY' ? null : $worker->ral_aspettativa,
                 'rating_reputazionale' => $worker->rating_reputazionale ?? 0,
 
                 'settore' => $worker->settore,

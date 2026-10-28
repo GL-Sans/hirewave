@@ -38,11 +38,6 @@ class OnboardingController extends Controller
             $data['rating_tecnico'] = 0;
         } else {
             $data['livello_istruzione'] = $request->livello_istruzione;
-            $data['rating_tecnico'] = RatingTecnico::calcola(
-                $request->livello_istruzione,
-                (int) $request->anni_esperienza,
-                $request->certificazioni
-            );
             // Stesso dato mostrato e modificabile nel curriculum
             $data['years_experience'] = $request->anni_esperienza;
         }
@@ -50,10 +45,14 @@ class OnboardingController extends Controller
         // forceFill: rating, badge e stato dell'onboarding non sono assegnabili in massa
         $user->forceFill($data)->save();
 
+        if (!$isCompany) {
+            RatingTecnico::aggiorna($user, 'Rating iniziale generato dall\'onboarding');
+        }
+
         return response()->json([
             'message' => 'Onboarding completato',
-            'rating_tecnico' => $isCompany ? null : $data['rating_tecnico'],
-            'badge' => 'grigio',
+            'rating_tecnico' => $isCompany ? null : $user->rating_tecnico,
+            'badge' => $user->badge,
             'user' => $user,
         ]);
     }
