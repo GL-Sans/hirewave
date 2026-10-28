@@ -59,7 +59,7 @@ function matchesChip(p: DirectoryProfile, chip: string) {
 }
 
 function SkeletonCard() {
-    return <div className="rounded-[20px] overflow-hidden aspect-square bg-slate-200 animate-pulse" />;
+    return <div className="rounded-2xl overflow-hidden h-56 sm:h-64 bg-slate-200 animate-pulse" />;
 }
 
 // Elenco a card condiviso da Talenti e Aziende
@@ -152,7 +152,7 @@ export default function ProfileDirectory({ endpoint, searchPlaceholder, emptyTex
                 </>
             )}
 
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {loading
                     ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
                     : filtered.length === 0

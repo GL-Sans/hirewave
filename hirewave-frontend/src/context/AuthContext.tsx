@@ -29,7 +29,10 @@ interface RegisterData {
 
 interface AuthContextType {
     user: User | null;
+    // Azione in corso (login, registrazione, logout): solo per i pulsanti
     loading: boolean;
+    // Primo controllo della sessione all'avvio: le rotte aspettano solo questo
+    initializing: boolean;
     login: (email: string, password: string, honeypot?: string) => Promise<void>;
     register: (data: RegisterData) => Promise<void>;
     logout: () => Promise<void>;
@@ -41,6 +44,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider = ({ children }: any) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [initializing, setInitializing] = useState(true);
 
     // Evita doppia esecuzione in StrictMode
     const initializedRef = useRef(false);
@@ -67,6 +71,7 @@ export const AuthProvider = ({ children }: any) => {
         (async () => {
             await fetchUser();
             setLoading(false);
+            setInitializing(false);
         })();
     }, []);
 
@@ -107,7 +112,7 @@ export const AuthProvider = ({ children }: any) => {
 
     return (
         <AuthContext.Provider
-            value={{ user, loading, login, register, logout, fetchUser }}
+            value={{ user, loading, initializing, login, register, logout, fetchUser }}
         >
             {children}
         </AuthContext.Provider>

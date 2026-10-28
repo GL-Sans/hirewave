@@ -85,11 +85,12 @@ export default function TutorChat() {
             {!open && (
                 <button
                     onClick={() => setOpen(true)}
-                    className="fixed z-40 right-4 bottom-20 md:bottom-6 h-12! pl-3! pr-4! rounded-full! border-0! bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition flex items-center gap-2"
+                    // Su telefono solo l'icona: copre meno contenuto
+                    className="fixed z-40 right-3 bottom-20 md:right-4 md:bottom-6 w-12! h-12! md:w-auto! p-0! md:pl-3! md:pr-4! rounded-full! border-0! bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition flex items-center justify-center gap-2"
                     aria-label="Apri il tutor HireWave"
                 >
                     <SparklesIcon className="w-5 h-5" />
-                    <span className="text-sm font-semibold">Tutor</span>
+                    <span className="hidden md:inline text-sm font-semibold">Tutor</span>
                 </button>
             )}
 

@@ -2,10 +2,11 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function ProtectedRoute() {
-  const { user, loading } = useAuth();
+  const { user, initializing } = useAuth();
   const location = useLocation();
 
-  if (loading) {
+  // Solo al primo avvio: un logout non deve far sparire la pagina prima del redirect
+  if (initializing) {
     return null;
   }
 

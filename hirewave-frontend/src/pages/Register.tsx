@@ -38,13 +38,14 @@ export default function RegisterPage() {
             // dopo register l'AuthContext fa già fetchUser → ProtectedRoute ti porta al /feed
         } catch (err: any) {
             // Mostra il primo errore di validazione del server (es. regole della password)
+            // Tutti i problemi insieme, così si correggono in un colpo solo
             const errors = err?.response?.data?.errors;
             setError(
                 errors
-                    ? (Object.values(errors)[0] as string[])[0]
+                    ? (Object.values(errors) as string[][]).map((e) => e[0]).join("\n")
                     : err?.response?.status === 429
                         ? "Troppi tentativi. Riprova tra qualche minuto."
-                        : "Errore durante la registrazione.",
+                        : err?.response?.data?.message ?? "Errore durante la registrazione.",
             );
         }
     };
@@ -57,7 +58,7 @@ export default function RegisterPage() {
                 </h1>
 
                 {error && (
-                    <div className="mb-4 text-sm text-red-600 border border-red-200 rounded-lg px-3 py-2">
+                    <div className="mb-4 text-sm text-red-600 border border-red-200 rounded-lg px-3 py-2 whitespace-pre-line">
                         {error}
                     </div>
                 )}

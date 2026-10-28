@@ -37,6 +37,18 @@ class AuthController extends Controller
         ], [
             'first_name.regex' => 'Il nome può contenere solo lettere, spazi, apostrofi e trattini.',
             'last_name.regex' => 'Il cognome può contenere solo lettere, spazi, apostrofi e trattini.',
+            'first_name.required' => 'Inserisci il nome.',
+            'last_name.required' => 'Inserisci il cognome.',
+            'email.required' => 'Inserisci l\'email.',
+            'email.email' => 'L\'indirizzo email non è valido.',
+            'email.unique' => $this->emailGiaUsata($request->input('email')),
+            'password.required' => 'Inserisci una password.',
+            'password.confirmed' => 'Le due password non coincidono.',
+            'password.min' => 'La password deve avere almeno 8 caratteri.',
+            'password.max' => 'La password può avere al massimo 128 caratteri.',
+            'password.letters' => 'La password deve contenere almeno una lettera.',
+            'password.numbers' => 'La password deve contenere almeno un numero.',
+            'role.in' => 'Scegli se sei lavoratore, professionista o azienda.',
         ]);
 
         $user = new User([
@@ -108,6 +120,19 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return response()->json(['message' => 'Logged out']);
+    }
+
+    /** Email già registrata: suggerisce come entrare (password o account social) */
+    private function emailGiaUsata(?string $email): string
+    {
+        $esistente = $email ? User::where('email', $email)->first(['has_password', 'google_id', 'linkedin_id']) : null;
+
+        if ($esistente && !$esistente->has_password && ($esistente->google_id || $esistente->linkedin_id)) {
+            return 'Questa email è già registrata con ' . ($esistente->google_id ? 'Google' : 'LinkedIn')
+                . ': accedi con quel pulsante.';
+        }
+
+        return 'Questa email è già registrata: vai su Accedi.';
     }
 
     private function honeypotFilled(Request $request): bool

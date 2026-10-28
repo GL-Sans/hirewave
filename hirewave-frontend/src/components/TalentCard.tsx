@@ -44,7 +44,7 @@ function formatRole(role: string) {
 }
 
 const iconButton =
-    "w-8! h-8! p-0! border-0! rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition";
+    "w-8! h-8! p-0! border-0! rounded-full bg-white/90 shadow-sm flex items-center justify-center text-slate-600 hover:bg-white hover:text-blue-600 transition";
 
 export default function TalentCard(props: TalentCardProps) {
     const { id, firstName, lastName, role, imageUrl, skills = [], badge, unlocked, rating, istruzione, canUnlock, unlockPrice, piano, onSavedChange, onUnlocked } = props;
@@ -102,136 +102,133 @@ export default function TalentCard(props: TalentCardProps) {
     };
 
     const SaveIcon = saved ? BookmarkSolidIcon : BookmarkIcon;
+    const iniziali = `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase();
 
+    // Riquadro foto in alto, contenuto sotto in colonna: niente elementi
+    // sovrapposti anche sui telefoni stretti (prima era tutto in posizione assoluta)
     return (
         <Link
             to={talentPath}
-            className="block relative rounded-[20px] group aspect-square border border-slate-200 shadow-md overflow-hidden"
+            className="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden"
         >
-            {imageUrl ? (
-                <img
-                    src={imageUrl}
-                    alt={`${firstName ?? ""} ${lastName ?? ""}`}
-                    loading="lazy"
-                    className="w-full h-full object-cover"
-                />
-            ) : (
-                <div className="w-full h-full bg-slate-100" />
-            )}
-
-            {/* Overlay solo se c'è immagine */}
-            {imageUrl && (
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-            )}
-
-            <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-1">
-                {badge && badge !== "none" && (
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
-                        badge === "verde"
-                            ? "bg-green-500 text-white"
-                            : "bg-black/50 text-white"
-                    }`}>
-                        {badge === "verde" ? "✓ Certificato" : "Dichiarato"}
-                    </span>
+            <div className="relative h-28 sm:h-32 shrink-0 bg-gradient-to-br from-slate-100 to-slate-200">
+                {imageUrl ? (
+                    <img
+                        src={imageUrl}
+                        alt={`${firstName ?? ""} ${lastName ?? ""}`}
+                        loading="lazy"
+                        className="w-full h-full object-cover"
+                    />
+                ) : (
+                    // Iniziali in basso: in alto ci sono badge e pulsanti
+                    <div className="w-full h-full flex items-end justify-center pb-2.5">
+                        <span className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/80 text-slate-400 font-bold text-base sm:text-lg flex items-center justify-center">
+                            {iniziali || "?"}
+                        </span>
+                    </div>
                 )}
-                {piano === "boost" && (
-                    <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-400 text-amber-950">⚡ Sponsor</span>
-                )}
-                {piano === "premium" && (
-                    <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-violet-500 text-white">★ In evidenza</span>
-                )}
-            </div>
 
-            <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
-                <button
-                    className={iconButton}
-                    onClick={handleSave}
-                    aria-label={saved ? "Rimuovi dai salvati" : "Salva"}
-                    title={saved ? "Rimuovi dai salvati" : "Salva"}
-                >
-                    <SaveIcon className="w-5 h-5" />
-                </button>
-                {canChat && (
+                <div className="absolute top-2 left-2 right-11 flex flex-col items-start gap-1">
+                    {/* Il badge riguarda i dati dei talenti, non le aziende */}
+                    {!isCompanyCard && badge && badge !== "none" && (
+                        <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap ${
+                            badge === "verde" ? "bg-green-500 text-white" : "bg-slate-700/70 text-white"
+                        }`}>
+                            {badge === "verde" ? "✓ Certificato" : "Dichiarato"}
+                        </span>
+                    )}
+                    {piano === "boost" && (
+                        <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap bg-amber-400 text-amber-950">⚡ Sponsor</span>
+                    )}
+                    {piano === "premium" && (
+                        <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap bg-violet-500 text-white">★ In evidenza</span>
+                    )}
+                </div>
+
+                <div className="absolute top-2 right-2 flex flex-col gap-1.5">
                     <button
                         className={iconButton}
-                        // Se non è sbloccato, la chat propone lo sblocco senza cambiare pagina
-                        onClick={(e) => { e.preventDefault(); navigate(`/chat?to=${id}`); }}
-                        aria-label="Scrivi un messaggio"
-                        title="Scrivi un messaggio"
+                        onClick={handleSave}
+                        aria-label={saved ? "Rimuovi dai salvati" : "Salva"}
+                        title={saved ? "Rimuovi dai salvati" : "Salva"}
                     >
-                        <PaperAirplaneIcon className="w-5 h-5 -rotate-45 -mt-0.5 ml-0.5" />
+                        <SaveIcon className="w-4 h-4" />
                     </button>
-                )}
-            </div>
-
-            <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
-                <div className="flex items-end justify-between">
-                    <div className="flex-1 min-w-0 pr-2">
-                        <h2 className={`text-sm font-bold tracking-tight leading-tight mb-0.5 truncate ${imageUrl ? "text-white" : "text-slate-800"}`}>
-                            {firstName ?? "—"} {lastName ?? ""}
-                        </h2>
-                        <p className={`text-[11px] font-medium mb-2 ${imageUrl ? "text-slate-300" : "text-slate-500"}`}>
-                            {formatRole(role)}
-                            {istruzione ? ` · ${istruzione}` : ""}
-                        </p>
-                        {rating != null && rating > 0 && (
-                            <div className="flex items-center gap-1.5 mb-2" title="Rating tecnico su 100">
-                                <span className={`text-[10px] font-bold ${imageUrl ? "text-white" : "text-slate-800"}`}>
-                                    {rating}
-                                </span>
-                                <div className={`h-1 w-14 rounded-full overflow-hidden ${imageUrl ? "bg-white/30" : "bg-slate-200"}`}>
-                                    <div className={`h-full ${badge === "verde" ? "bg-green-500" : "bg-blue-500"}`} style={{ width: `${rating}%` }} />
-                                </div>
-                            </div>
-                        )}
-                        <div className="flex flex-wrap gap-1">
-                            {skills.slice(0, 1).map((skill, index) => (
-                                <span
-                                    key={index}
-                                    className={`px-2 py-1 text-[8px] uppercase font-bold rounded-full tracking-wider ${imageUrl ? "text-white bg-black/40" : "text-slate-700 bg-slate-200"}`}
-                                >
-                                    {skill}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                    {showUnlock && (
+                    {canChat && (
                         <button
-                            className={`w-10! h-10! p-0! border-0! shrink-0 rounded-full flex items-center justify-center text-white shadow-xl transition transform hover:scale-105 active:scale-95 disabled:opacity-50 ${
-                                unlocked ? "bg-green-500 hover:bg-green-400" : "bg-blue-600 hover:bg-blue-500"
-                            }`}
-                            onClick={unlocked ? (e) => e.preventDefault() : handleUnlock}
-                            disabled={loading || unlocked}
-                            title={unlocked ? "Profilo sbloccato" : `Sblocca profilo · €${unlockPrice ? euro(unlockPrice) : ""}`}
+                            className={iconButton}
+                            // Se non è sbloccato, la chat propone lo sblocco senza cambiare pagina
+                            onClick={(e) => { e.preventDefault(); navigate(`/chat?to=${id}`); }}
+                            aria-label="Scrivi un messaggio"
+                            title="Scrivi un messaggio"
                         >
-                            {loading
-                                ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                : unlocked
-                                    ? <span className="text-sm">✓</span>
-                                    : <UserPlusIcon className="w-4 h-4" />
-                            }
-                        </button>
-                    )}
-                    {showFollow && (
-                        <button
-                            className={`w-10! h-10! p-0! border-0! shrink-0 rounded-full flex items-center justify-center text-white shadow-xl transition transform hover:scale-105 active:scale-95 disabled:opacity-50 ${
-                                followed ? "bg-green-500 hover:bg-green-400" : "bg-blue-600 hover:bg-blue-500"
-                            }`}
-                            onClick={handleFollow}
-                            disabled={loading}
-                            title={followed ? "Smetti di seguire" : "Segui: ricevi i nuovi annunci"}
-                            aria-label={followed ? "Smetti di seguire" : "Segui azienda"}
-                        >
-                            {loading
-                                ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                : followed
-                                    ? <CheckIcon className="w-4 h-4" />
-                                    : <UserPlusIcon className="w-4 h-4" />
-                            }
+                            <PaperAirplaneIcon className="w-4 h-4 -rotate-45 -mt-0.5 ml-0.5" />
                         </button>
                     )}
                 </div>
             </div>
+
+            <div className="flex flex-col flex-1 gap-1.5 p-3">
+                <div className="min-w-0">
+                    <h2 className="text-sm font-bold text-slate-800 leading-tight truncate">
+                        {firstName ?? "—"} {lastName ?? ""}
+                    </h2>
+                    <p className="text-[11px] text-slate-500 leading-snug line-clamp-2">
+                        {formatRole(role)}
+                        {istruzione ? ` · ${istruzione}` : ""}
+                    </p>
+                </div>
+
+                {rating != null && rating > 0 && (
+                    <div className="flex items-center gap-1.5" title="Rating tecnico su 100">
+                        <span className="text-[11px] font-bold text-slate-800 w-5">{rating}</span>
+                        <div className="h-1.5 flex-1 rounded-full overflow-hidden bg-slate-100">
+                            <div className={`h-full ${badge === "verde" ? "bg-green-500" : "bg-blue-500"}`} style={{ width: `${rating}%` }} />
+                        </div>
+                    </div>
+                )}
+
+                {skills.length > 0 && (
+                    <span className="self-start max-w-full truncate px-2 py-0.5 text-[9px] uppercase font-bold rounded-full tracking-wide text-slate-600 bg-slate-100">
+                        {skills[0]}
+                    </span>
+                )}
+
+                {showUnlock && (
+                    <button
+                        className={`mt-auto w-full py-2! px-2! rounded-xl! border-0! text-xs font-semibold text-white transition active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-1.5 ${
+                            unlocked ? "bg-green-500" : "bg-blue-600 hover:bg-blue-500"
+                        }`}
+                        onClick={unlocked ? (e) => e.preventDefault() : handleUnlock}
+                        disabled={loading || unlocked}
+                    >
+                        {loading
+                            ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            : unlocked
+                                ? <><CheckIcon className="w-3.5 h-3.5" /> Sbloccato</>
+                                : <><UserPlusIcon className="w-3.5 h-3.5" /> Sblocca{unlockPrice ? ` · €${euro(unlockPrice)}` : ""}</>
+                        }
+                    </button>
+                )}
+                {showFollow && (
+                    <button
+                        className={`mt-auto w-full py-2! px-2! rounded-xl! text-xs font-semibold transition active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-1.5 ${
+                            followed ? "bg-white text-green-700 border! border-green-200!" : "bg-blue-600 text-white border-0! hover:bg-blue-500"
+                        }`}
+                        onClick={handleFollow}
+                        disabled={loading}
+                        title={followed ? "Smetti di seguire" : "Segui: ricevi i nuovi annunci"}
+                    >
+                        {loading
+                            ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            : followed
+                                ? <><CheckIcon className="w-3.5 h-3.5" /> Seguita</>
+                                : <><UserPlusIcon className="w-3.5 h-3.5" /> Segui</>
+                        }
+                    </button>
+                )}
+            </div>
         </Link>
     );
 }
+
