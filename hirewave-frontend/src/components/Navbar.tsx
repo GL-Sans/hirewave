@@ -14,6 +14,7 @@ import {
     Cog6ToothIcon,
     ArrowRightOnRectangleIcon,
     BellIcon,
+    ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 
 // type Props = {
@@ -189,6 +190,16 @@ export default function Navbar() {
                                     <Cog6ToothIcon className="w-4 h-4 text-slate-400" />
                                     <span>Impostazioni</span>
                                 </Link>
+                                {user?.is_admin && (
+                                    <Link
+                                        to="/admin/documenti"
+                                        onClick={() => setIsMenuOpen(false)}
+                                        className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                                    >
+                                        <ShieldCheckIcon className="w-4 h-4 text-slate-400" />
+                                        <span>Revisione documenti</span>
+                                    </Link>
+                                )}
                                 <hr className="my-1 border-slate-100" />
                                 <button
                                     onClick={() => {

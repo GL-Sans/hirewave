@@ -23,6 +23,9 @@ type TalentCardProps = {
     unlocked?: boolean;
     saved?: boolean;
     followed?: boolean;
+    // Visibili prima dello sblocco (business plan, par. 5.1)
+    rating?: number | null;
+    istruzione?: string;
     onSavedChange?: (id: number, saved: boolean) => void;
 };
 
@@ -37,7 +40,7 @@ const iconButton =
     "w-8! h-8! p-0! border-0! rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition";
 
 export default function TalentCard(props: TalentCardProps) {
-    const { id, firstName, lastName, role, imageUrl, skills = [], badge, unlocked, onSavedChange } = props;
+    const { id, firstName, lastName, role, imageUrl, skills = [], badge, unlocked, rating, istruzione, onSavedChange } = props;
     const navigate = useNavigate();
     const { user } = useAuth();
     const isCompanyViewer = user?.role === "COMPANY";
@@ -157,7 +160,18 @@ export default function TalentCard(props: TalentCardProps) {
                         </h2>
                         <p className={`text-[11px] font-medium mb-2 ${imageUrl ? "text-slate-300" : "text-slate-500"}`}>
                             {formatRole(role)}
+                            {istruzione ? ` · ${istruzione}` : ""}
                         </p>
+                        {rating != null && rating > 0 && (
+                            <div className="flex items-center gap-1.5 mb-2" title="Rating tecnico su 100">
+                                <span className={`text-[10px] font-bold ${imageUrl ? "text-white" : "text-slate-800"}`}>
+                                    {rating}
+                                </span>
+                                <div className={`h-1 w-14 rounded-full overflow-hidden ${imageUrl ? "bg-white/30" : "bg-slate-200"}`}>
+                                    <div className={`h-full ${badge === "verde" ? "bg-green-500" : "bg-blue-500"}`} style={{ width: `${rating}%` }} />
+                                </div>
+                            </div>
+                        )}
                         <div className="flex flex-wrap gap-1">
                             {skills.slice(0, 1).map((skill, index) => (
                                 <span

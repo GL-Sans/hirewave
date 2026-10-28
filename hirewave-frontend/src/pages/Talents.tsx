@@ -5,6 +5,7 @@ const CHIPS = [
     { label: "Tutti", value: "ALL" },
     { label: "Lavoratori", value: "WORKER" },
     { label: "Professionisti", value: "PRO" },
+    { label: "Certificati", value: "VERIFIED" },
     { label: "Salvati", value: "SAVED" },
 ];
 

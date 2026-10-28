@@ -11,6 +11,9 @@ interface User {
     onboarding_completato?: boolean;
     notifications_enabled?: boolean;
     has_password?: boolean;
+    is_admin?: boolean;
+    badge?: string;
+    rating_tecnico?: number;
 }
 
 interface RegisterData {

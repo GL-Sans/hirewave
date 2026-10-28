@@ -22,6 +22,7 @@ import CurriculumPage from "./pages/Curriculum";
 import OnboardingPage from "./pages/Onboarding";
 import NotFoundPage from "./pages/NotFound";
 import NotificationsPage from "./pages/Notifications";
+import AdminDocumentiPage from "./pages/AdminDocumenti";
 
 function App() {
     return (
@@ -68,6 +69,7 @@ function App() {
                             />
                             <Route path="/chat" element={<ChatPage />} />
                             <Route path="/notifications" element={<NotificationsPage />} />
+                            <Route path="/admin/documenti" element={<AdminDocumentiPage />} />
                             <Route
                                 path="/settings"
                                 element={<SettingsPage />}

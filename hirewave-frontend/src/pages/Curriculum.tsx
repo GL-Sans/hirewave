@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import axiosClient from "../api/axiosClient";
 import { profileIdFromParam } from "../utils/profilePath";
+import { ISTRUZIONE_OPTIONS } from "../utils/labels";
 
 // Riga "etichetta: valore" che va a capo su schermi stretti (email e link lunghi inclusi)
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -34,9 +35,13 @@ export default function CurriculumPage() {
         curriculum_public: false,
         skills: "",
         languages: "",
+        livello_istruzione: "",
+        certificazioni: "",
     });
+    const [error, setError] = useState("");
 
     const isMyProfile = !name || profileIdFromParam(name) === loggedUser?.id;
+    const isTalent = loggedUser?.role !== "COMPANY";
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -63,6 +68,8 @@ export default function CurriculumPage() {
                         curriculum_public: u.curriculum_public ?? false,
                         skills: u.skills ? u.skills.join(", ") : "",
                         languages: u.languages ? u.languages.join(", ") : "",
+                        livello_istruzione: u.livello_istruzione ?? "",
+                        certificazioni: u.certificazioni ?? "",
                     });
                 }
             } catch (err) {
@@ -76,23 +83,29 @@ export default function CurriculumPage() {
 
     const handleSave = async () => {
         setSaving(true);
+        setError("");
         try {
             const website = form.website && !form.website.startsWith("http")
                 ? `https://${form.website}`
                 : form.website;
 
+            const { livello_istruzione, certificazioni, ...rest } = form;
             await axiosClient.put("/api/me/curriculum", {
-                ...form,
+                ...rest,
                 website,
                 years_experience: form.years_experience ? parseInt(form.years_experience as string) : null,
                 skills: form.skills ? form.skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
                 languages: form.languages ? form.languages.split(",").map((l) => l.trim()).filter(Boolean) : [],
+                // Dati del rating: solo lavoratori e professionisti
+                ...(isTalent ? { livello_istruzione: livello_istruzione || undefined, certificazioni } : {}),
             });
             setShowForm(false);
             const res = await axiosClient.get("/api/me");
             setProfileUser(res.data.user);
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
+            const errors = err?.response?.data?.errors;
+            setError(err?.response?.data?.message ?? (errors ? (Object.values(errors)[0] as string[])[0] : "Salvataggio non riuscito."));
         } finally {
             setSaving(false);
         }
@@ -169,6 +182,38 @@ export default function CurriculumPage() {
                         </div>
                     ))}
 
+                    {isTalent && (
+                        <div className="border border-slate-200 rounded-xl p-3 space-y-3">
+                            <p className="text-xs text-slate-500">
+                                Questi dati, insieme agli anni di esperienza, calcolano il tuo rating tecnico.
+                            </p>
+                            <div>
+                                <label className="text-sm text-slate-500 block mb-1">Titolo di studio</label>
+                                <select
+                                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+                                    value={form.livello_istruzione}
+                                    onChange={(e) => setForm({ ...form, livello_istruzione: e.target.value })}
+                                >
+                                    <option value="" disabled>Seleziona…</option>
+                                    {ISTRUZIONE_OPTIONS.map((o) => (
+                                        <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-sm text-slate-500 block mb-1">Certificazioni (separate da virgola)</label>
+                                <input
+                                    type="text"
+                                    maxLength={500}
+                                    placeholder="Es. HACCP, BLSD, Inglese B2"
+                                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                                    value={form.certificazioni}
+                                    onChange={(e) => setForm({ ...form, certificazioni: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     <div>
                         <label className="text-sm text-slate-500 block mb-1">Telefono (visibile alle aziende che sbloccano il tuo profilo)</label>
                         <input
@@ -213,6 +258,8 @@ export default function CurriculumPage() {
                         />
                         Rendi il curriculum pubblico (mostra anche la tua email)
                     </label>
+
+                    {error && <p className="text-sm text-red-600">{error}</p>}
 
                     <button
                         onClick={handleSave}

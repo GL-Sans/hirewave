@@ -6,7 +6,27 @@ import FeedCard from "../components/FeedCard";
 import type { FeedPost } from "../types/Feed";
 import { useAuth } from "../context/AuthContext";
 import { profileIdFromParam, profilePath } from "../utils/profilePath";
-import { companySizeLabel, roleLabel } from "../utils/labels";
+import { companySizeLabel, istruzioneLabel, roleLabel, unlockPrice, VERIFICA_PREMIUM_PRICE } from "../utils/labels";
+import RatingBreakdown from "../components/RatingBreakdown";
+import DocumentiVerifica from "../components/DocumentiVerifica";
+import type { Documento, DocumentoPreset, RatingDettaglio, RatingStorico } from "../types/Rating";
+
+// Stessa divisione del backend (RatingTecnico::certificazioniDa)
+function certificazioniDa(testo?: string | null) {
+    return (testo ?? "").split(/[,;\n]+/).map((s) => s.trim()).filter((s) => s.length >= 2);
+}
+
+async function scaricaFile(url: string, nome: string) {
+    const response = await axiosClient.get(url, { responseType: "blob" });
+    const href = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = href;
+    link.setAttribute("download", nome);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(href);
+}
 
 type Review = {
     id: number;
@@ -50,6 +70,11 @@ export default function ProfilePage() {
     const [reviewComment, setReviewComment] = useState("");
     const [savingReview, setSavingReview] = useState(false);
     const [reviewError, setReviewError] = useState("");
+    const [ratingDettaglio, setRatingDettaglio] = useState<RatingDettaglio | null>(null);
+    const [ratingStorico, setRatingStorico] = useState<RatingStorico[]>([]);
+    const [uploadPreset, setUploadPreset] = useState<DocumentoPreset | null>(null);
+    const [buyingPremium, setBuyingPremium] = useState(false);
+    const [notice, setNotice] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cvInputRef = useRef<HTMLInputElement>(null);
     const { user: loggedUser, fetchUser, logout } = useAuth();
@@ -60,9 +85,28 @@ export default function ProfilePage() {
         const fetchProfile = async () => {
             setLoading(true);
             try {
+                // Ritorno dal checkout (Verifica Premium): conferma il pagamento prima di caricare
+                const params = new URLSearchParams(window.location.search);
+                const sessionId = params.get("session_id");
+                if (sessionId) {
+                    try {
+                        await axiosClient.post("/api/stripe/confirm", { session_id: sessionId });
+                        setNotice("Verifica Premium attiva: ora puoi scaricare i documenti originali.");
+                    } catch (err) {
+                        console.error("Errore conferma pagamento:", err);
+                    }
+                } else if (params.get("verifica") === "ok") {
+                    setNotice("Verifica Premium attiva (modalità demo): ora puoi scaricare i documenti originali.");
+                }
+                if (sessionId || params.get("verifica")) {
+                    window.history.replaceState(null, "", window.location.pathname);
+                }
+
                 if (!isMyProfile) {
                     const res = await axiosClient.get(`/api/profile/${name}`);
                     setUser(res.data.user);
+                    setRatingDettaglio(res.data.user.rating_dettaglio ?? null);
+                    setRatingStorico([]);
                     setPosts(res.data.posts);
                     setReviews(res.data.reviews ?? []);
 
@@ -75,6 +119,8 @@ export default function ProfilePage() {
                 } else {
                     const res = await axiosClient.get("/api/me");
                     setUser(res.data.user);
+                    setRatingDettaglio(res.data.rating_dettaglio ?? null);
+                    setRatingStorico(res.data.rating_storico ?? []);
 
                     const [postsRes, reviewsRes] = await Promise.all([
                         axiosClient.get(`/api/profiles/${res.data.user.id}/posts`),
@@ -179,6 +225,29 @@ export default function ProfilePage() {
             alert("Errore durante l'avvio del pagamento.");
             setUnlocking(false);
         }
+    };
+
+    const handleVerificaPremium = async () => {
+        setBuyingPremium(true);
+        try {
+            const res = await axiosClient.post("/api/stripe/checkout", {
+                worker_id: user.id,
+                prodotto: "verifica_premium",
+            });
+            if (res.data.url) window.location.href = res.data.url;
+        } catch (err: any) {
+            alert(err?.response?.data?.message ?? "Errore durante l'avvio del pagamento.");
+            setBuyingPremium(false);
+        }
+    };
+
+    // Dopo upload o eliminazione di un documento: rating, badge e storico aggiornati
+    const handleDocumentiChanged = async (data: { user: any; rating_dettaglio: RatingDettaglio }) => {
+        setUser(data.user);
+        setRatingDettaglio(data.rating_dettaglio);
+        const res = await axiosClient.get("/api/me");
+        setRatingStorico(res.data.rating_storico ?? []);
+        await fetchUser();
     };
 
     const handleSubmitReview = async (e: React.FormEvent) => {
@@ -393,71 +462,39 @@ export default function ProfilePage() {
                                     )}
                                 </div>
                             )}
-                            {user.role !== "COMPANY" && user.rating_tecnico > 0 && (
-                                <div className="mt-3 border border-slate-200 rounded-xl p-4 max-w-sm w-full">
-                                    <div className="flex items-center justify-between gap-2 mb-2">
-                                        <span className="text-sm font-semibold text-slate-700">
-                                            Rating Tecnico
-                                        </span>
-                                        <span className="text-lg font-bold text-slate-900">
-                                            {user.rating_tecnico}
-                                            <span className="text-sm text-slate-400 font-normal">
-                                                /100
-                                            </span>
-                                        </span>
-                                    </div>
-                                    <div className="w-full bg-slate-100 rounded-full h-1.5 mb-3">
-                                        <div
-                                            className="bg-slate-800 h-1.5 rounded-full transition-all"
-                                            style={{
-                                                width: `${user.rating_tecnico}%`,
-                                            }}
-                                        ></div>
-                                    </div>
-                                    <div className="space-y-1.5 text-xs text-slate-500">
-                                        {user.livello_istruzione && (
-                                            <div className="flex justify-between gap-4">
-                                                <span>Istruzione</span>
-                                                <span className="font-medium text-slate-700 capitalize">
-                                                    {user.livello_istruzione.replace(
-                                                        "_",
-                                                        " ",
-                                                    )}
-                                                </span>
-                                            </div>
-                                        )}
-                                        {user.anni_esperienza != null && (
-                                            <div className="flex justify-between gap-4">
-                                                <span>Esperienza</span>
-                                                <span className="font-medium text-slate-700 text-right min-w-0 break-words">
-                                                    {user.anni_esperienza} anni
-                                                </span>
-                                            </div>
-                                        )}
-                                        {user.settore && (
-                                            <div className="flex justify-between gap-4">
-                                                <span>Settore</span>
-                                                <span className="font-medium text-slate-700 text-right min-w-0 break-words">
-                                                    {user.settore}
-                                                </span>
-                                            </div>
-                                        )}
-                                        {user.certificazioni && (
-                                            <div className="flex justify-between gap-4">
-                                                <span>Certificazioni</span>
-                                                <span className="font-medium text-slate-700 text-right min-w-0 break-words">
-                                                    {user.certificazioni}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {isMyProfile && (
-                                        <p className="text-[10px] text-slate-400 mt-3">
-                                            Aggiungi certificazioni o esperienza
-                                            per aumentare il rating.
-                                        </p>
+                            {/* Dati di valutazione visibili prima dello sblocco (business plan, par. 5.1) */}
+                            {user.role !== "COMPANY" && (user.settore || user.livello_istruzione || user.ral_aspettativa) && (
+                                <div className="mt-3 border border-slate-200 rounded-xl p-4 max-w-md w-full space-y-1.5 text-xs text-slate-500">
+                                    <span className="text-sm font-semibold text-slate-700 block mb-2">
+                                        Profilo professionale
+                                    </span>
+                                    {user.settore && (
+                                        <div className="flex justify-between gap-4">
+                                            <span>Settore</span>
+                                            <span className="font-medium text-slate-700 text-right min-w-0 break-words">{user.settore}</span>
+                                        </div>
+                                    )}
+                                    {user.livello_istruzione && (
+                                        <div className="flex justify-between gap-4">
+                                            <span>Titolo di studio</span>
+                                            <span className="font-medium text-slate-700 text-right">{istruzioneLabel(user.livello_istruzione)}</span>
+                                        </div>
+                                    )}
+                                    {user.ral_aspettativa && (
+                                        <div className="flex justify-between gap-4">
+                                            <span>Retribuzione attesa</span>
+                                            <span className="font-medium text-slate-700 text-right min-w-0 break-words">{user.ral_aspettativa}</span>
+                                        </div>
                                     )}
                                 </div>
+                            )}
+                            {user.role !== "COMPANY" && ratingDettaglio && (
+                                <RatingBreakdown
+                                    dettaglio={ratingDettaglio}
+                                    storico={isMyProfile ? ratingStorico : undefined}
+                                    curriculumPath={isMyProfile ? `${profilePath(user)}/curriculum` : undefined}
+                                    onUpload={isMyProfile ? setUploadPreset : undefined}
+                                />
                             )}
                         </div>
 
@@ -598,9 +635,59 @@ export default function ProfilePage() {
                                         >
                                             {unlocking
                                                 ? "Reindirizzamento..."
-                                                : "Sblocca profilo e contatti"}
+                                                : `Sblocca profilo e contatti · €${unlockPrice(user.badge)}`}
                                         </button>
                                     )
+                                )}
+                                {loggedUser?.role === "COMPANY" && user.role !== "COMPANY" && !user.unlocked && (
+                                    <p className="text-xs text-slate-400 mt-2">
+                                        Nome, contatti e chat libera per 30 giorni.{" "}
+                                        {user.badge === "verde"
+                                            ? "Profilo certificato: dati verificati con documenti."
+                                            : "Profilo dichiarato: dati non ancora verificati."}
+                                    </p>
+                                )}
+
+                                {notice && <p className="mt-3 text-sm text-green-700">{notice}</p>}
+
+                                {user.verifica_premium_disponibile && (
+                                    <div className="mt-4 border border-green-200 bg-green-100 rounded-xl p-3">
+                                        <p className="text-sm font-semibold text-green-700">Verifica Premium</p>
+                                        <p className="text-xs text-slate-600 mt-0.5">
+                                            Scarica i documenti originali che hanno certificato questo profilo (titoli, attestati, referenze).
+                                        </p>
+                                        <button
+                                            onClick={handleVerificaPremium}
+                                            disabled={buyingPremium}
+                                            className="mt-2 px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 border-0!"
+                                        >
+                                            {buyingPremium ? "Reindirizzamento..." : `Acquista · €${VERIFICA_PREMIUM_PRICE}`}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {user.verifica_premium && user.documenti?.length > 0 && (
+                                    <div className="mt-4">
+                                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                                            Documenti verificati
+                                        </h3>
+                                        <ul className="space-y-1.5">
+                                            {user.documenti.map((d: Documento) => (
+                                                <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
+                                                    <span className="text-slate-700 min-w-0 break-words">
+                                                        {d.descrizione}
+                                                        {d.anno ? ` · ${d.anno}` : ""}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => scaricaFile(`/api/documenti/${d.id}/file`, d.nome_file).catch(() => alert("Download non riuscito."))}
+                                                        className="shrink-0 text-xs text-blue-600 p-0! border-0! bg-transparent hover:underline"
+                                                    >
+                                                        Scarica
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
                                 )}
                                 {user.can_contact && (
                                     <Link
@@ -672,6 +759,16 @@ export default function ProfilePage() {
                                     />
                                 </>
                             </div>
+                        )}
+
+                        {isMyProfile && user.role !== "COMPANY" && user.onboarding_completato && (
+                            <DocumentiVerifica
+                                livelloIstruzione={user.livello_istruzione}
+                                certificazioni={certificazioniDa(user.certificazioni)}
+                                preset={uploadPreset}
+                                onPresetUsed={() => setUploadPreset(null)}
+                                onChanged={handleDocumentiChanged}
+                            />
                         )}
                     </div>
                 </div>

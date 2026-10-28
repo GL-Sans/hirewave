@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import axiosClient from "../api/axiosClient";
 import SearchBar from "./SearchBar";
 import TalentCard from "./TalentCard";
+import { istruzioneLabel } from "../utils/labels";
 
 export type DirectoryProfile = {
     id: number;
@@ -15,6 +16,8 @@ export type DirectoryProfile = {
     followed?: boolean;
     settore?: string | null;
     skills?: string[];
+    rating_tecnico?: number | null;
+    livello_istruzione?: string | null;
 };
 
 type Chip = { label: string; value: string };
@@ -48,6 +51,7 @@ function matchesChip(p: DirectoryProfile, chip: string) {
     if (chip === "ALL") return true;
     if (chip === "SAVED") return !!p.saved;
     if (chip === "FOLLOWED") return !!p.followed;
+    if (chip === "VERIFIED") return p.badge === "verde";
     return p.role === chip;
 }
 
@@ -159,6 +163,8 @@ export default function ProfileDirectory({ endpoint, searchPlaceholder, emptyTex
                                 unlocked={p.unlocked}
                                 saved={p.saved}
                                 followed={p.followed}
+                                rating={p.rating_tecnico}
+                                istruzione={istruzioneLabel(p.livello_istruzione)}
                                 onSavedChange={updateSaved}
                             />
                         ))
