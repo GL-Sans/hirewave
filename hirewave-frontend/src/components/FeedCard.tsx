@@ -16,6 +16,7 @@ import axiosClient from "../api/axiosClient";
 import type { FeedPost } from "../types/Feed";
 import PostEditModal from "./PostEditModal";
 import ReportModal from "./ReportModal";
+import { useBackClose } from "../hooks/useBackClose";
 
 type FeedCardProps = {
     postId: number;
@@ -77,7 +78,11 @@ export default function FeedCard(props: FeedCardProps) {
     const [sharing, setSharing] = useState(false);
     const [hidden, setHidden] = useState<null | "hidden" | "reported">(null);
     const [feedback, setFeedback] = useState("");
+    const [candidato, setCandidato] = useState(!!post?.candidato);
+    const [candidando, setCandidando] = useState(false);
+    const [erroreCandidatura, setErroreCandidatura] = useState("");
     const menuRef = useRef<HTMLDivElement>(null);
+    useBackClose(menuOpen, () => setMenuOpen(false));
 
     useEffect(() => {
         if (!menuOpen) return;
@@ -133,6 +138,26 @@ export default function FeedCard(props: FeedCardProps) {
             setHidden(null);
         } catch {
             setFeedback("Operazione non riuscita");
+        }
+    };
+
+    // La candidatura finisce in "Candidature inviate" nel mio profilo
+    const handleCandidatura = async () => {
+        setCandidando(true);
+        setErroreCandidatura("");
+        try {
+            if (candidato) {
+                if (!window.confirm("Ritirare la candidatura?")) return;
+                await axiosClient.delete(`/api/posts/${postId}/candidatura`);
+                setCandidato(false);
+            } else {
+                await axiosClient.post(`/api/posts/${postId}/candidatura`);
+                setCandidato(true);
+            }
+        } catch (err: any) {
+            setErroreCandidatura(err?.response?.data?.message ?? "Candidatura non riuscita.");
+        } finally {
+            setCandidando(false);
         }
     };
 
@@ -321,8 +346,8 @@ export default function FeedCard(props: FeedCardProps) {
                     <div className="mt-auto pt-3 flex flex-col gap-2">
 
                         {showCompanyCTA ? (
-                            // Cognome visibile = profilo sbloccato; altrimenti si passa dal profilo per sbloccarlo
-                            <Link to={author.last_name ? `/chat?to=${author.id}` : authorPath}>
+                            // In chat: messaggi preimpostati e sblocco, o chat libera se già sbloccato
+                            <Link to={`/chat?to=${author.id}`}>
                                 <button className="w-full bg-blue-600 text-white text-sm font-semibold py-1.5 rounded-lg">
                                     {isWorkerAuthor
                                         ? "Contatta il lavoratore"
@@ -331,11 +356,26 @@ export default function FeedCard(props: FeedCardProps) {
                             </Link>
                         ) : (
                             <>
-                                <Link to={`/chat?to=${author.id}`}>
-                                    <button className="w-full bg-green-600 text-white text-sm font-semibold py-1.5 rounded-lg">
-                                        Candidati ora
-                                    </button>
-                                </Link>
+                                <button
+                                    onClick={handleCandidatura}
+                                    disabled={candidando}
+                                    title={candidato ? "Tocca per ritirare la candidatura" : undefined}
+                                    className={`w-full text-sm font-semibold py-1.5 rounded-lg disabled:opacity-60 ${
+                                        candidato
+                                            ? "bg-green-50 text-green-700 border! border-green-200!"
+                                            : "bg-green-600 text-white"
+                                    }`}
+                                >
+                                    {candidando ? "…" : candidato ? "✓ Candidatura inviata" : "Candidati ora"}
+                                </button>
+                                {erroreCandidatura && (
+                                    <p className="text-[11px] text-red-500 text-center">
+                                        {erroreCandidatura}{" "}
+                                        {erroreCandidatura.includes("Premium") && (
+                                            <Link to="/abbonamenti" className="text-blue-600 underline">Scopri Premium</Link>
+                                        )}
+                                    </p>
+                                )}
                                 <button
                                     onClick={handleShare}
                                     className="w-full border border-slate-200 text-slate-600 text-xs py-1.5 rounded-lg"

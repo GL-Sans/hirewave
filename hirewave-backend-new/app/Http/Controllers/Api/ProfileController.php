@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Support\Abbonamento;
+use App\Support\Mercato;
+use App\Support\ProfileAccess;
 use App\Support\RatingTecnico;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +21,11 @@ class ProfileController extends Controller
         $isTalent = $user->role !== 'COMPANY' && $user->onboarding_completato;
 
         return response()->json([
-            'user' => array_merge($user->toArray(), ['piano' => Abbonamento::attivo($user)]),
+            'user' => array_merge($user->toArray(), [
+                'piano' => Abbonamento::attivo($user),
+                'mercato' => $isTalent ? Mercato::confronto($user) : null,
+                'sblocchi_gratuiti_rimasti' => ProfileAccess::sblocchiGratuitiRimasti($user),
+            ]),
             'abbonamento' => Abbonamento::stato($user),
             // Il perché del rating e le sue ultime variazioni, solo al proprietario
             'rating_dettaglio' => $isTalent ? RatingTecnico::dettaglio($user) : null,
@@ -94,6 +101,23 @@ class ProfileController extends Controller
         }
 
         return Storage::disk('local')->download($user->cv);
+    }
+
+    /** CV di un altro profilo: solo a chi l'ha sbloccato (lo sblocco paga anche il curriculum) */
+    public function downloadCvDi(int $id)
+    {
+        $viewer = Auth::user();
+        $owner = User::findOrFail($id);
+
+        $ok = $viewer->id === $owner->id
+            || (ProfileAccess::canUnlock($viewer, $owner) && ProfileAccess::isUnlocked($viewer->id, $owner->id));
+        if (!$ok || !$owner->cv || !Storage::disk('local')->exists($owner->cv)) {
+            abort(404);
+        }
+
+        $nome = 'CV ' . trim($owner->first_name . ' ' . $owner->last_name) . '.' . pathinfo($owner->cv, PATHINFO_EXTENSION);
+
+        return Storage::disk('local')->download($owner->cv, $nome);
     }
 
     public function updateDescription(Request $request)

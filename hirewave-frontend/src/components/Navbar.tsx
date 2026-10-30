@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { Link, useLocation } from "react-router-dom";
 import { profilePath } from "../utils/profilePath";
 import axiosClient from "../api/axiosClient";
+import { useBackClose } from "../hooks/useBackClose";
 import {
     HomeIcon,
     UserGroupIcon,
@@ -29,6 +30,7 @@ export default function Navbar() {
     const menuRef = useRef<HTMLDivElement>(null);
     const [unread, setUnread] = useState(0);
     const location = useLocation();
+    useBackClose(isMenuOpen, () => setIsMenuOpen(false));
 
     // Conteggio notifiche non lette: ogni 20 s, a ogni cambio pagina e quando la pagina Notifiche lo segnala
     useEffect(() => {
@@ -178,7 +180,7 @@ export default function Navbar() {
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-50 overflow-hidden animate-in fade-in zoom-in duration-200">
                                 <Link
                                     to={user ? profilePath(user) : "/profile"}
-                                    onClick={() => setIsMenuOpen(false)}
+                                    replace onClick={() => setIsMenuOpen(false)}
                                     className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                                 >
                                     <UserIcon className="w-4 h-4 text-slate-400" />
@@ -186,7 +188,7 @@ export default function Navbar() {
                                 </Link>
                                 <Link
                                     to="/settings"
-                                    onClick={() => setIsMenuOpen(false)}
+                                    replace onClick={() => setIsMenuOpen(false)}
                                     className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                                 >
                                     <Cog6ToothIcon className="w-4 h-4 text-slate-400" />
@@ -195,7 +197,7 @@ export default function Navbar() {
                                 {user && user.role !== "COMPANY" && (
                                     <Link
                                         to="/abbonamenti"
-                                        onClick={() => setIsMenuOpen(false)}
+                                        replace onClick={() => setIsMenuOpen(false)}
                                         className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                                     >
                                         <SparklesIcon className="w-4 h-4 text-violet-500" />
@@ -205,7 +207,7 @@ export default function Navbar() {
                                 {user?.is_admin && (
                                     <Link
                                         to="/admin/documenti"
-                                        onClick={() => setIsMenuOpen(false)}
+                                        replace onClick={() => setIsMenuOpen(false)}
                                         className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                                     >
                                         <ShieldCheckIcon className="w-4 h-4 text-slate-400" />

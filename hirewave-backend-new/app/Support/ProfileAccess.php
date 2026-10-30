@@ -42,6 +42,16 @@ class ProfileAccess
         return $owner->badge === 'verde' ? 2999 : 1499;
     }
 
+    /** Sblocchi gratuiti del lancio alpha ancora disponibili (solo aziende) */
+    public static function sblocchiGratuitiRimasti(User $viewer): int
+    {
+        if ($viewer->role !== 'COMPANY') {
+            return 0;
+        }
+
+        return max(0, (int) config('hirewave.sblocchi_gratuiti') - (int) $viewer->sblocchi_gratuiti_usati);
+    }
+
     /** Ha mai sbloccato il profilo, anche se lo sblocco è scaduto (serve per le recensioni) */
     public static function everUnlocked(int $viewerId, int $ownerId): bool
     {

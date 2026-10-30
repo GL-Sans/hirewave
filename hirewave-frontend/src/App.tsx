@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import ScrollToTop from "./components/ScrollToTop";
 
 import PublicRoute from "./router/PublicRoute";
 import ProtectedRoute from "./router/ProtectedRoute";
@@ -39,6 +40,7 @@ function App() {
     return (
         <AuthProvider>
             <BrowserRouter>
+                <ScrollToTop />
                 <Suspense fallback={<PageFallback />}>
                     <Routes>
                         {/* ROTTE PUBBLICHE (solo se NON loggato) */}

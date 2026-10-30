@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\RatingTecnico;
 use App\Support\VerificaDocumenti;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -47,6 +48,8 @@ class DemoSeeder extends Seeder
             'birth_date' => '1998-03-14', 'city' => 'Pescara', 'contract_type' => 'Stagionale',
             'skills' => ['Servizio in sala', 'Vini', 'Inglese'], 'languages' => ['Italiano', 'Inglese'],
             'description' => 'Cameriere con 4 stagioni in ristoranti di pesce tra Pescara e Francavilla. Disponibile giugno–settembre.',
+            'istituto' => 'IPSSAR «De Cecco», Pescara', 'anno_titolo' => 2017,
+            'disponibilita_da' => '2027-06-01', 'disponibilita_a' => '2027-09-30', 'zona' => 'Pescara e costa teatina',
         ]);
 
         // Account per la demo: profilo certificato con rating alto
@@ -57,6 +60,8 @@ class DemoSeeder extends Seeder
             'birth_date' => '1991-07-02', 'city' => 'Pescara', 'contract_type' => 'Partita IVA',
             'skills' => ['React', 'Laravel', 'AWS'], 'languages' => ['Italiano', 'Inglese'],
             'description' => 'Sviluppatrice full-stack freelance: siti, gestionali e app per PMI e strutture ricettive.',
+            'istituto' => 'Università di Bologna, Ingegneria informatica', 'anno_titolo' => 2016,
+            'disponibilita_da' => now()->toDateString(), 'zona' => 'Da remoto, in sede in Abruzzo',
         ], [
             ['istruzione', null, null, 2016],
             ['esperienza', 'Sviluppatrice full-stack, Studio Web Adriatico', 8, 2017],
@@ -69,6 +74,7 @@ class DemoSeeder extends Seeder
             'livello_istruzione' => 'diploma', 'anni_esperienza' => 3, 'certificazioni' => 'Brevetto bagnino FIN, BLSD',
             'birth_date' => '2001-05-20', 'city' => 'Montesilvano', 'skills' => ['Salvamento', 'Primo soccorso'],
             'description' => 'Bagnina di salvataggio, 3 stagioni in stabilimenti della costa abruzzese.',
+            'percorso' => 'stagionale', 'disponibilita_da' => '2027-05-15', 'disponibilita_a' => '2027-09-15', 'zona' => 'Montesilvano – Pescara',
         ], [
             ['certificazione', 'Brevetto bagnino FIN', null, 2021],
             ['certificazione', 'BLSD', null, 2024],
@@ -79,6 +85,7 @@ class DemoSeeder extends Seeder
             'livello_istruzione' => 'diploma', 'anni_esperienza' => 12, 'certificazioni' => 'HACCP, Sommelier AIS',
             'birth_date' => '1988-11-09', 'city' => 'Pescara', 'skills' => ['Cucina di pesce', 'Pasticceria', 'Gestione brigata'],
             'description' => 'Chef de partie, 12 anni tra hotel e ristoranti. Specializzato in pesce e cucina abruzzese.',
+            'istituto' => 'IPSSAR di Villa Santa Maria', 'anno_titolo' => 2007, 'disponibilita_da' => '2027-03-01', 'zona' => 'Pescara e Chieti',
         ], [
             ['istruzione', null, null, 2007],
             ['esperienza', 'Chef de partie, Grand Hotel Adriatico', 10, 2014],
@@ -97,6 +104,7 @@ class DemoSeeder extends Seeder
             'livello_istruzione' => 'diploma', 'anni_esperienza' => 2, 'certificazioni' => 'AIBES',
             'birth_date' => '2002-08-30', 'city' => 'Pescara', 'skills' => ['Cocktail', 'Caffetteria'],
             'description' => 'Barista e bartender, corso AIBES. Disponibile per la stagione estiva.',
+            'percorso' => 'stagionale', 'disponibilita_da' => '2027-06-01', 'disponibilita_a' => '2027-09-10', 'zona' => 'Pescara',
         ], [
             ['certificazione', 'AIBES', null, 2023],
         ]);
@@ -113,19 +121,21 @@ class DemoSeeder extends Seeder
             'livello_istruzione' => 'diploma', 'anni_esperienza' => 1, 'certificazioni' => 'Inglese B2',
             'birth_date' => '2004-01-25', 'city' => 'Francavilla al Mare', 'skills' => ['Accoglienza', 'Hostess'],
             'description' => 'Addetto sala e hostess per fiere e congressi, weekend e festivi.',
+            'percorso' => 'stagionale', 'disponibilita_da' => now()->toDateString(), 'zona' => 'Pescara, Chieti, Teramo (weekend)',
         ]);
 
-        $this->talento('roberto', 'WORKER', 'Roberto', 'Mancini', [
+        $roberto = $this->talento('roberto', 'WORKER', 'Roberto', 'Mancini', [
             'settore' => 'Logistica', 'ral_aspettativa' => '€1.500 – €2.000/mese',
             'livello_istruzione' => 'licenza_media', 'anni_esperienza' => 7, 'certificazioni' => 'Patente C, Patentino muletto',
             'birth_date' => '1990-09-03', 'city' => 'San Giovanni Teatino', 'skills' => ['Magazzino', 'Muletto'],
             'description' => 'Magazziniere, patente C e patentino del muletto. Disponibile da subito.',
+            'disponibilita_da' => now()->toDateString(), 'zona' => 'Val Pescara',
         ], [
             ['certificazione', 'Patentino muletto', null, 2019],
         ]);
 
         // Caso ambiguo per mostrare la revisione manuale: laurea a 19 anni
-        $this->talento('valentina', 'WORKER', 'Valentina', 'Bruno', [
+        $valentina = $this->talento('valentina', 'WORKER', 'Valentina', 'Bruno', [
             'settore' => 'Turismo / Hospitality', 'ral_aspettativa' => '€1.500 – €2.000/mese',
             'livello_istruzione' => 'laurea_triennale', 'anni_esperienza' => 3, 'certificazioni' => 'Inglese C1, Tedesco B1',
             'birth_date' => '2003-06-12', 'city' => 'Pescara', 'skills' => ['Reception', 'Booking', 'Lingue'],
@@ -202,22 +212,31 @@ class DemoSeeder extends Seeder
         $sara->forceFill(['abbonamento' => 'boost', 'abbonamento_scade_at' => now()->addDays(21)])->save();
         $federica->forceFill(['abbonamento' => 'premium', 'abbonamento_scade_at' => now()->addDays(12)])->save();
 
-        // Messaggi da talenti non sbloccati: l'azienda li sblocca dalla chat per rispondere
-        $this->messaggio($marco, $hotel, 'Buongiorno, ho visto l\'annuncio per camerieri di sala. Ho 4 stagioni di esperienza e HACCP, sarei disponibile da giugno.', 50);
-        $this->messaggio($davide, $eventi, 'Salve, sono disponibile come hostess per la fiera di aprile, anche per tutte e 3 le giornate.', 180);
+        // Senza sblocco solo messaggi preimpostati (App\Support\Chat): l'azienda sblocca dalla chat per rispondere liberamente
+        $this->messaggio($hotel, $marco, 'Il tuo profilo è interessante: sei disponibile per un colloquio?', 70);
+        $this->messaggio($marco, $hotel, 'Ho inviato la candidatura al vostro annuncio.', 50);
+        $this->messaggio($eventi, $davide, 'Sei disponibile nel periodo indicato nel tuo profilo?', 240);
+        $this->messaggio($davide, $eventi, 'Sì, sono disponibile.', 180);
+        // Federica è sbloccata da Adriatica Eventi: chat libera
         $this->messaggio($eventi, $federica, 'Ciao Federica, ci servirebbe una modifica al modulo di prenotazione. Hai tempo questa settimana?', 300);
         $this->messaggio($federica, $eventi, 'Certo! Mandatemi i dettagli e vi faccio un preventivo entro domani.', 280);
 
         DB::table('company_follows')->insert(['user_id' => $marco->id, 'company_id' => $hotel->id, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('saved_profiles')->insert(['user_id' => $hotel->id, 'saved_user_id' => $marco->id, 'created_at' => now(), 'updated_at' => now()]);
 
-        $this->post($hotel, 'job', 'Camerieri di sala · stagione 2027', 'Cerchiamo 4 camerieri per il ristorante dell\'hotel, giugno–settembre. Richiesto HACCP, gradito inglese.', 'Pescara', 'Contratto a tempo determinato', 1500, 'Mensile');
-        $this->post($hotel, 'job', 'Receptionist con inglese e tedesco', 'Turni su 3 fasce, esperienza in hotel di almeno 2 anni.', 'Pescara', 'Contratto a tempo determinato', 1700, 'Mensile');
+        $camerieri = $this->post($hotel, 'job', 'Camerieri di sala · stagione 2027', 'Cerchiamo 4 camerieri per il ristorante dell\'hotel, giugno–settembre. Richiesto HACCP, gradito inglese.', 'Pescara', 'Contratto a tempo determinato', 1500, 'Mensile');
+        $reception = $this->post($hotel, 'job', 'Receptionist con inglese e tedesco', 'Turni su 3 fasce, esperienza in hotel di almeno 2 anni.', 'Pescara', 'Contratto a tempo determinato', 1700, 'Mensile');
         $this->post($molo, 'job', 'Chef de partie pesce', 'Brigata di 6 persone, cucina di pesce crudo e cotto. Disponibilità serale.', 'Pescara', 'Contratto a tempo indeterminato', 2200, 'Mensile');
-        $this->post($logistica, 'job', 'Magazzinieri con patentino muletto', 'Turni diurni, contratto di 6 mesi con possibilità di rinnovo.', 'San Giovanni Teatino', 'Contratto a tempo determinato', 1600, 'Mensile');
+        $magazzino = $this->post($logistica, 'job', 'Magazzinieri con patentino muletto', 'Turni diurni, contratto di 6 mesi con possibilità di rinnovo.', 'San Giovanni Teatino', 'Contratto a tempo determinato', 1600, 'Mensile');
         $this->post($negozio, 'job', 'Addetta vendita part-time', '24 ore settimanali, gradita esperienza nell\'abbigliamento.', 'Pescara', 'Part-time', 900, 'Mensile');
         $this->post($software, 'job', 'Tecnico help desk', 'Assistenza ai clienti su gestionali per hotel, anche da remoto.', 'Pescara', 'Contratto a tempo indeterminato', 1800, 'Mensile');
-        $this->post($eventi, 'job', 'Hostess per fiera di aprile', '3 giornate in fiera, accoglienza e registrazione ospiti.', 'Pescara', 'A chiamata', 15, 'Ora');
+        $hostess = $this->post($eventi, 'job', 'Hostess per fiera di aprile', '3 giornate in fiera, accoglienza e registrazione ospiti.', 'Pescara', 'A chiamata', 15, 'Ora');
+
+        // Candidature: il talento le vede nel profilo, l'azienda tra le ricevute
+        foreach ([[$marco, $camerieri, 1], [$antonio, $camerieri, 2], [$valentina, $reception, 3], [$roberto, $magazzino, 1], [$davide, $hostess, 4]] as [$t, $p, $giorni]) {
+            $quando = now()->subDays($giorni);
+            DB::table('candidature')->insert(['post_id' => $p->id, 'user_id' => $t->id, 'created_at' => $quando, 'updated_at' => $quando]);
+        }
         $this->post($marco, 'service', 'Cameriere disponibile estate 2027', 'Stagionale giugno–settembre in ristorante o stabilimento balneare.', 'Pescara', 'Contratto a tempo determinato', 1400, 'Mensile');
         $this->post($federica, 'service', 'Siti e gestionali per hotel e ristoranti', 'Sviluppo web su misura, prenotazioni online e integrazioni.', 'Remoto', 'Partita IVA', 300, 'Fisso');
         $this->post($sara, 'service', 'Bagnina con brevetto FIN e BLSD', 'Disponibile per la stagione 2027 sulla costa abruzzese.', 'Montesilvano', 'Contratto a tempo determinato', 1300, 'Mensile');
@@ -237,6 +256,9 @@ class DemoSeeder extends Seeder
 
         foreach (DocumentoVerifica::whereIn('user_id', $ids)->pluck('file_path') as $path) {
             Storage::disk('local')->delete($path);
+        }
+        foreach (User::whereIn('id', $ids)->whereNotNull('profile_image')->pluck('profile_image') as $path) {
+            Storage::disk('public')->delete($path);
         }
         DB::table('unlocked_profiles')->whereIn('company_id', $ids)->orWhereIn('worker_id', $ids)->delete();
         DB::table('messages')->whereIn('sender_id', $ids)->orWhereIn('receiver_id', $ids)->delete();
@@ -262,6 +284,17 @@ class DemoSeeder extends Seeder
             'country' => 'Italia',
         ], $extra))->save();
 
+        // Foto fittizia (ritratto per i talenti, logo per le aziende) da database/seeders/foto
+        foreach (['jpg', 'png'] as $ext) {
+            $sorgente = __DIR__ . "/foto/$alias.$ext";
+            if (is_file($sorgente)) {
+                $path = "profile/demo-$alias-" . uniqid() . ".$ext";
+                Storage::disk('public')->put($path, file_get_contents($sorgente));
+                $u->forceFill(['profile_image' => $path])->save();
+                break;
+            }
+        }
+
         return $u;
     }
 
@@ -280,7 +313,7 @@ class DemoSeeder extends Seeder
     /** @param array<array{0:string,1:?string,2:?int,3:?int}> $documenti [tipo, riferimento, anni, anno] */
     private function talento(string $alias, string $role, string $nome, string $cognome, array $dati, array $documenti = []): User
     {
-        $u = $this->base($alias, $role, $nome, $cognome, array_merge($dati, [
+        $u = $this->base($alias, $role, $nome, $cognome, array_merge(['zona' => $dati['city'] ?? null], $dati, [
             'years_experience' => $dati['anni_esperienza'],
             // Curriculum privato: nome e contatti si vedono solo dopo lo sblocco a pagamento
             'curriculum_public' => false,
@@ -291,8 +324,9 @@ class DemoSeeder extends Seeder
             $riferimento = $tipo === 'istruzione' ? $u->livello_istruzione : $riferimento;
             $descrizione = $tipo === 'istruzione' ? RatingTecnico::ISTRUZIONE_LABEL[$riferimento] : $riferimento;
             $contenuto = self::pdf("Documento dimostrativo HireWave\n$nome $cognome\n$descrizione" . ($anno ? " ($anno)" : ''));
-            $path = "documenti/{$u->id}/demo-" . uniqid() . '.pdf';
-            Storage::disk('local')->put($path, $contenuto);
+            // Cifrato come gli upload reali (DocumentoController::store)
+            $path = "documenti/{$u->id}/demo-" . uniqid() . '.pdf.enc';
+            Storage::disk('local')->put($path, Crypt::encryptString($contenuto));
 
             $doc = new DocumentoVerifica(['tipo' => $tipo, 'riferimento' => $riferimento, 'anni' => $anni, 'anno' => $anno]);
             $doc->forceFill([
@@ -302,6 +336,8 @@ class DemoSeeder extends Seeder
                 'mime' => 'application/pdf',
                 'dimensione' => strlen($contenuto),
                 'hash' => hash('sha256', $contenuto),
+                'consenso_at' => now(),
+                'cifrato' => true,
                 'stato' => 'in_verifica',
             ])->save();
 
@@ -314,7 +350,7 @@ class DemoSeeder extends Seeder
     private function recensione(User $azienda, User $talento, int $stelle, string $testo): void
     {
         Review::create(['reviewer_id' => $azienda->id, 'worker_id' => $talento->id, 'stars' => $stelle, 'comment' => $testo]);
-        $talento->forceFill(['rating_reputazionale' => round(Review::where('worker_id', $talento->id)->avg('stars'), 1)])->save();
+        Review::aggiornaRating($talento->id);
     }
 
     private function messaggio(User $da, User $a, string $testo, int $minutiFa): void
@@ -323,9 +359,9 @@ class DemoSeeder extends Seeder
         DB::table('messages')->insert(['sender_id' => $da->id, 'receiver_id' => $a->id, 'body' => $testo, 'created_at' => $quando, 'updated_at' => $quando]);
     }
 
-    private function post(User $autore, string $tipo, string $titolo, string $testo, string $luogo, string $contratto, int $budget, string $budgetTipo): void
+    private function post(User $autore, string $tipo, string $titolo, string $testo, string $luogo, string $contratto, int $budget, string $budgetTipo): Post
     {
-        Post::create([
+        return Post::create([
             'user_id' => $autore->id, 'type' => $tipo, 'title' => $titolo, 'description' => $testo,
             'location' => $luogo, 'contract_type' => $contratto, 'budget' => $budget,
             'budget_type' => $budgetTipo, 'sponsored' => false,

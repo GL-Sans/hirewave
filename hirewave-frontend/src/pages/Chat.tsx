@@ -10,7 +10,8 @@ import axiosClient from "../api/axiosClient";
 import { useAuth } from "../context/AuthContext";
 import { profilePath } from "../utils/profilePath";
 import { euro, istruzioneLabel, roleLabel } from "../utils/labels";
-import { avviaSblocco, confermaRitornoStripe, messaggioErrore } from "../utils/sblocco";
+import { avviaSblocco, avvisoSblocco, confermaRitornoStripe, messaggioErrore } from "../utils/sblocco";
+import { useBackClose } from "../hooks/useBackClose";
 
 type Contact = {
     id: number;
@@ -31,6 +32,9 @@ type OffertaSblocco = {
     livello_istruzione: string | null;
     ral_aspettativa: string | null;
 };
+
+// Messaggi preimpostati: gli unici consentiti prima dello sblocco (App\Support\Chat)
+type Preset = { id: string; testo: string };
 
 type Conversation = {
     contact: Contact;
@@ -103,10 +107,10 @@ function SbloccoCard({ contact, offerta, canSend, onUnlock, unlocking }: {
             >
                 {unlocking
                     ? "Sblocco in corso…"
-                    : `${canSend ? "Sblocca nome e contatti" : "Sblocca e rispondi"} · €${euro(offerta.prezzo)}`}
+                    : `${canSend ? "Sblocca nome e contatti" : "Sblocca e scrivi liberamente"} · €${euro(offerta.prezzo)}`}
             </button>
             <p className="mt-1.5 text-[10px] text-slate-400 text-center">
-                Nome, foto, contatti e chat libera per 30 giorni
+                Nome, foto, contatti, curriculum completo e chat libera per 30 giorni
             </p>
         </div>
     );
@@ -183,6 +187,8 @@ export default function ChatPage() {
     const [message, setMessage] = useState("");
     const [messages, setMessages] = useState<ApiMessage[]>([]);
     const [canSend, setCanSend] = useState(false);
+    const [canChat, setCanChat] = useState(true);
+    const [preset, setPreset] = useState<Preset[]>([]);
     const [offerta, setOfferta] = useState<OffertaSblocco | null>(null);
     const [unlocking, setUnlocking] = useState(false);
     const [notice, setNotice] = useState("");
@@ -191,6 +197,8 @@ export default function ChatPage() {
     const [search, setSearch] = useState("");
     const messagesRef = useRef<HTMLDivElement>(null);
     const viewport = useMobileViewport();
+    // Su telefono "indietro" torna dalla conversazione all'elenco
+    useBackClose(viewport.isMobile && showChatOnMobile, () => setShowChatOnMobile(false));
 
     useEffect(() => {
         document.body.style.overflow = "hidden";
@@ -213,6 +221,8 @@ export default function ChatPage() {
             // Non sovrascrivo i messaggi inviati e non ancora confermati
             setMessages((prev) => [...res.data.messages, ...prev.filter((m) => m.id < 0)]);
             setCanSend(res.data.can_send);
+            setCanChat(res.data.can_chat ?? true);
+            setPreset(res.data.preset ?? []);
             setOfferta(res.data.sblocco ?? null);
         } catch (err) {
             console.error("Errore caricamento messaggi:", err);
@@ -251,7 +261,7 @@ export default function ChatPage() {
             if (fatto) {
                 await loadMessages(selectedContact.id);
                 loadConversations();
-                setNotice("Profilo sbloccato (pagamento demo): ora puoi rispondere.");
+                setNotice(avvisoSblocco(fatto, "ora puoi scrivere liberamente"));
             }
         } catch (err) {
             setError(messaggioErrore(err));
@@ -281,6 +291,7 @@ export default function ChatPage() {
         setNotice("");
         setMessages([]);
         setOfferta(null);
+        setPreset([]);
         setSelectedContact(contact);
         setShowChatOnMobile(true);
         // Il contatore dei non letti si azzera subito, senza aspettare il server
@@ -289,26 +300,30 @@ export default function ChatPage() {
     };
 
     // Invio ottimistico: il messaggio compare subito, il server lo conferma dopo
-    const handleSend = async () => {
-        const body = message.trim();
-        if (!body || !selectedContact || sending) return;
+    const invia = async (testo: string, payload: { body?: string; preset?: string }) => {
+        if (!selectedContact || sending) return;
         const tempId = -Date.now();
         setSending(true);
         setError("");
-        setMessage("");
-        setMessages((prev) => [...prev, { id: tempId, sender_id: user!.id, body, created_at: new Date().toISOString() }]);
+        if (payload.body) setMessage("");
+        setMessages((prev) => [...prev, { id: tempId, sender_id: user!.id, body: testo, created_at: new Date().toISOString() }]);
         try {
-            const res = await axiosClient.post(`/api/messages/${selectedContact.id}`, { body });
+            const res = await axiosClient.post(`/api/messages/${selectedContact.id}`, payload);
             // Se un aggiornamento periodico l'ha già portato, tengo una sola copia
             setMessages((prev) => prev.filter((m) => m.id !== res.data.id).map((m) => (m.id === tempId ? res.data : m)));
             loadConversations();
         } catch (err: any) {
             setMessages((prev) => prev.filter((m) => m.id !== tempId));
-            setMessage(body);
+            if (payload.body) setMessage(payload.body);
             setError(err?.response?.data?.message ?? "Errore durante l'invio del messaggio.");
         } finally {
             setSending(false);
         }
+    };
+
+    const handleSend = () => {
+        const body = message.trim();
+        if (body) invia(body, { body });
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -451,10 +466,30 @@ export default function ChatPage() {
                                         <PaperAirplaneIcon className="w-4 h-4" />
                                     </button>
                                 </div>
+                            ) : preset.length > 0 ? (
+                                <div className="space-y-1.5">
+                                    <p className="text-[11px] text-slate-400">
+                                        Prima dello sblocco si possono inviare solo messaggi preimpostati.
+                                    </p>
+                                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                                        {preset.map((p) => (
+                                            <button
+                                                key={p.id}
+                                                onClick={() => invia(p.testo, { preset: p.id })}
+                                                disabled={sending}
+                                                className="shrink-0 max-w-[260px] text-left px-3! py-2! rounded-2xl! border! border-blue-200! bg-white text-xs text-blue-700 hover:bg-blue-50 disabled:opacity-50 whitespace-normal"
+                                            >
+                                                {p.testo}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             ) : (
                                 !offerta && (
                                     <p className="text-xs text-slate-400 text-center py-2">
-                                        Non puoi scrivere a questo utente.
+                                        {canChat
+                                            ? "Non puoi scrivere a questo utente."
+                                            : "La chat è disponibile solo tra aziende o professionisti e i talenti. Questa conversazione resta in sola lettura."}
                                     </p>
                                 )
                             )}

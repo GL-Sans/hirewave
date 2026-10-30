@@ -6,6 +6,8 @@ const CHIPS = [
     { label: "Lavoratori", value: "WORKER" },
     { label: "Professionisti", value: "PRO" },
     { label: "Certificati", value: "VERIFIED" },
+    { label: "Stagionali", value: "SEASONAL" },
+    { label: "In linea con mercato", value: "MARKET" },
     { label: "Salvati", value: "SAVED" },
 ];
 
@@ -29,6 +31,7 @@ export default function TalentsPage() {
             emptyText="Nessun talento trovato."
             chips={CHIPS}
             beforeLoad={confirmStripeReturn}
+            filtriTalenti
         />
     );
 }

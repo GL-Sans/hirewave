@@ -51,6 +51,18 @@ class StripeController extends Controller
             default => $frontendUrl . '/talents?unlocked=' . $worker->id,
         };
 
+        // Lancio alpha: le prime aziende sbloccano gratis (config/hirewave.php)
+        if (ProfileAccess::sblocchiGratuitiRimasti($company) > 0) {
+            $company->increment('sblocchi_gratuiti_usati');
+            $this->unlock($company->id, $worker->id);
+            return response()->json([
+                'url' => $ritorno,
+                'demo' => true,
+                'gratuito' => true,
+                'sblocchi_gratuiti_rimasti' => ProfileAccess::sblocchiGratuitiRimasti($company),
+            ]);
+        }
+
         if (!config('services.stripe.secret')) {
             // Modalità demo SOLO in locale: in produzione, una chiave mancante
             // avrebbe reso gli sblocchi gratuiti per tutti
@@ -144,10 +156,10 @@ class StripeController extends Controller
         return response()->json(['url' => $session->url]);
     }
 
-    /** Premium €14,99 o Boost €29,99 per 30 giorni (lavoratori e professionisti) */
+    /** Premium €14,99/mese o €149,99/anno, Boost €29,99/mese (lavoratori e professionisti) */
     public function checkoutAbbonamento(Request $request)
     {
-        $request->validate(['piano' => 'required|in:premium,boost']);
+        $request->validate(['piano' => 'required|in:' . implode(',', array_keys(Abbonamento::PIANI))]);
 
         $user = Auth::user();
         if ($user->role === 'COMPANY') {
@@ -168,14 +180,14 @@ class StripeController extends Controller
 
         Stripe::setApiKey(config('services.stripe.secret'));
 
-        // Un mese alla volta: il rinnovo automatico richiede i prezzi ricorrenti su Stripe
+        // Un periodo alla volta: il rinnovo automatico richiede i prezzi ricorrenti su Stripe
         $session = Session::create([
             'payment_method_types' => ['card'],
             'line_items' => [[
                 'price_data' => [
                     'currency' => 'eur',
                     'product_data' => [
-                        'name' => 'HireWave ' . Abbonamento::PIANI[$piano]['nome'] . ' — 30 giorni',
+                        'name' => 'HireWave ' . Abbonamento::PIANI[$piano]['nome'] . ' — ' . Abbonamento::PIANI[$piano]['giorni'] . ' giorni',
                     ],
                     'unit_amount' => Abbonamento::PIANI[$piano]['prezzo'],
                 ],

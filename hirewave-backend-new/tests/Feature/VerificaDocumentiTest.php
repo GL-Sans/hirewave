@@ -50,7 +50,26 @@ class VerificaDocumentiTest extends TestCase
         return $this->actingAs($u)->post('/api/me/documenti', array_merge([
             'file' => $file ?? $this->pdf(),
             'conferma' => '1',
+            'consenso' => '1',
         ], $dati), ['Accept' => 'application/json']);
+    }
+
+    public function test_serve_il_consenso_e_il_file_e_cifrato(): void
+    {
+        $u = $this->lavoratore();
+        $this->actingAs($u)->post('/api/me/documenti', ['tipo' => 'istruzione', 'anno' => 2014, 'file' => $this->pdf(), 'conferma' => '1'], ['Accept' => 'application/json'])
+            ->assertStatus(422)->assertJsonValidationErrors('consenso');
+
+        $file = UploadedFile::fake()->createWithContent('diploma.pdf', '%PDF-1.4 ' . str_repeat('diploma ', 1000));
+        $id = $this->carica($u, ['tipo' => 'istruzione', 'anno' => 2014], $file)->assertCreated()->json('documento.id');
+
+        $doc = DocumentoVerifica::find($id);
+        $this->assertTrue((bool) $doc->cifrato);
+        $this->assertNotNull($doc->consenso_at);
+        // Sul disco il contenuto non è leggibile, lo scaricamento restituisce l'originale
+        $this->assertStringNotContainsString('diploma', Storage::disk('local')->get($doc->file_path));
+        $res = $this->actingAs($u)->get("/api/documenti/$id/file")->assertOk();
+        $this->assertSame('%PDF-1.4 ' . str_repeat('diploma ', 1000), $res->streamedContent());
     }
 
     public function test_titolo_verificato_da_badge_verde_e_alza_il_rating(): void

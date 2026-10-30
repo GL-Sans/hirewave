@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axiosClient from "../api/axiosClient";
 import { istruzioneLabel } from "../utils/labels";
+import { useBackClose } from "../hooks/useBackClose";
 import type { Documento, DocumentoPreset, RatingDettaglio, TipoDocumento } from "../types/Rating";
 
 type Props = {
@@ -34,8 +35,10 @@ export default function DocumentiVerifica({ livelloIstruzione, certificazioni, p
     const [form, setForm] = useState(VUOTO);
     const [file, setFile] = useState<File | null>(null);
     const [sending, setSending] = useState(false);
+    const [consenso, setConsenso] = useState(false);
     const [error, setError] = useState("");
     const [ultimo, setUltimo] = useState<Documento | null>(null);
+    useBackClose(open, () => setOpen(false));
 
     const load = async () => {
         const res = await axiosClient.get("/api/me/documenti");
@@ -80,7 +83,10 @@ export default function DocumentiVerifica({ livelloIstruzione, certificazioni, p
     const avanti = () => {
         const e = valida();
         setError(e);
-        if (!e) setStep("conferma");
+        if (!e) {
+            setConsenso(false);
+            setStep("conferma");
+        }
     };
 
     const invia = async () => {
@@ -89,6 +95,7 @@ export default function DocumentiVerifica({ livelloIstruzione, certificazioni, p
         const data = new FormData();
         data.append("tipo", form.tipo);
         data.append("conferma", "1");
+        data.append("consenso", consenso ? "1" : "0");
         data.append("file", file!);
         if (form.riferimento) data.append("riferimento", form.riferimento.trim());
         if (form.anni) data.append("anni", form.anni);
@@ -292,13 +299,27 @@ export default function DocumentiVerifica({ livelloIstruzione, certificazioni, p
                                     Il documento viene controllato automaticamente per coerenza con i dati del profilo.
                                     I casi dubbi passano a un operatore.
                                 </p>
+                                {/* GDPR: consenso esplicito per ogni documento caricato */}
+                                <label className="flex items-start gap-2 text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+                                    <input
+                                        type="checkbox"
+                                        className="mt-0.5 shrink-0"
+                                        checked={consenso}
+                                        onChange={(e) => setConsenso(e.target.checked)}
+                                    />
+                                    <span>
+                                        Acconsento al trattamento di questo documento per la verifica del profilo.
+                                        Il file è conservato cifrato; lo vedono solo io, gli operatori di HireWave
+                                        e le aziende che acquistano la Verifica Premium. Posso eliminarlo quando voglio.
+                                    </span>
+                                </label>
                                 {error && <p className="text-xs text-red-600">{error}</p>}
                                 <div className="flex gap-2 pt-1">
                                     <button type="button" onClick={() => setStep("dati")} disabled={sending}
                                         className="flex-1 border! border-slate-200! bg-white text-slate-700 rounded-lg py-2 text-sm">
                                         Indietro
                                     </button>
-                                    <button type="button" onClick={invia} disabled={sending}
+                                    <button type="button" onClick={invia} disabled={sending || !consenso}
                                         className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm font-semibold border-0! disabled:opacity-50">
                                         {sending ? "Verifica in corso…" : "Conferma e invia"}
                                     </button>

@@ -21,6 +21,7 @@ class FeedController extends Controller
         $search = $search === '' ? null : addcslashes($search, '\\%_');
 
         $unlockedIds = ProfileAccess::unlockedIds($viewer);
+        $candidature = CandidaturaController::postIds($viewer);
 
         $posts = Post::with('user')
             ->where('user_id', '!=', $viewer->id)
@@ -47,6 +48,7 @@ class FeedController extends Controller
                     'user' => ProfileAccess::present($viewer, $post->user, $unlockedIds),
                     // Piano Boost: i post del lavoratore sono sponsorizzati
                     'sponsored' => (bool) $post->sponsored || Abbonamento::attivo($post->user) === 'boost',
+                    'candidato' => in_array($post->id, $candidature, true),
                 ]
             ))
             // Sponsorizzati in cima, il resto resta dal più recente

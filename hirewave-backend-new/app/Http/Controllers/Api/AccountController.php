@@ -84,7 +84,8 @@ class AccountController extends Controller
             'profili_salvati' => DB::table('saved_profiles')->where('user_id', $user->id)->pluck('saved_user_id')->toArray(),
             'aziende_seguite' => DB::table('company_follows')->where('user_id', $user->id)->pluck('company_id')->toArray(),
             'notifiche' => $user->notifications()->get(['data', 'read_at', 'created_at'])->toArray(),
-            'documenti_verifica' => DocumentoVerifica::where('user_id', $user->id)->get(['tipo', 'riferimento', 'anni', 'anno', 'nome_file', 'stato', 'esito', 'created_at'])->toArray(),
+            'documenti_verifica' => DocumentoVerifica::where('user_id', $user->id)->get(['tipo', 'riferimento', 'anni', 'anno', 'nome_file', 'stato', 'esito', 'consenso_at', 'created_at'])->toArray(),
+            'candidature' => DB::table('candidature')->where('user_id', $user->id)->get(['post_id', 'created_at'])->toArray(),
             'storico_rating' => DB::table('rating_storico')->where('user_id', $user->id)->get(['valore_precedente', 'valore', 'motivo', 'created_at'])->toArray(),
             'conversazione_tutor' => DB::table('tutor_messaggi')->where('user_id', $user->id)->get(['autore', 'testo', 'created_at'])->toArray(),
         ];

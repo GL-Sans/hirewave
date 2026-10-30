@@ -2,18 +2,52 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axiosClient from "../api/axiosClient";
+import { RETRIBUZIONI } from "../utils/labels";
 
-const DOMANDE_WORKER = [
-    { id: "settore", domanda: "In quale settore vuoi lavorare?", tipo: "select", opzioni: ["Ristorazione / HoReCa", "Turismo / Hospitality", "Eventi", "Logistica", "Commercio / Retail", "IT / Digitale", "Altro"] },
-    { id: "ral_aspettativa", domanda: "Qual è la tua aspettativa di retribuzione?", tipo: "select", opzioni: ["Meno di €1.000/mese", "€1.000 – €1.500/mese", "€1.500 – €2.000/mese", "€2.000 – €3.000/mese", "Oltre €3.000/mese", "Tariffa giornaliera / Freelance"] },
+type Opzione = string | { label: string; value: string };
+type Domanda = {
+    id: string;
+    domanda: string;
+    tipo: "select" | "text" | "periodo";
+    opzioni?: Opzione[];
+    placeholder?: string;
+    nota?: string;
+};
+
+const SETTORI = ["Ristorazione / HoReCa", "Turismo / Hospitality", "Eventi", "Logistica", "Commercio / Retail", "IT / Digitale", "Altro"];
+const ESPERIENZA = [{ label: "Nessuna esperienza", value: "0" }, { label: "Meno di 1 anno", value: "1" }, { label: "1 – 3 anni", value: "2" }, { label: "3 – 5 anni", value: "4" }, { label: "5 – 10 anni", value: "7" }, { label: "Oltre 10 anni", value: "11" }];
+
+// Due percorsi dello stesso prodotto (business plan, par. 2.3): la scelta è del lavoratore
+const PERCORSO: Domanda = {
+    id: "percorso",
+    domanda: "Che profilo vuoi creare?",
+    tipo: "select",
+    opzioni: [
+        { label: "☀ Lavoro stagionale — profilo rapido: quando e dove sei disponibile", value: "stagionale" },
+        { label: "✓ Profilo certificato — titolo e certificazioni, per il badge verde", value: "certificato" },
+    ],
+    nota: "Puoi passare al profilo certificato quando vuoi, completando il curriculum.",
+};
+
+const DOMANDE_STAGIONALE: Domanda[] = [
+    { id: "settore", domanda: "In quale settore vuoi lavorare?", tipo: "select", opzioni: SETTORI },
+    { id: "disponibilita", domanda: "Quando sei disponibile?", tipo: "periodo", nota: "La data di fine è facoltativa." },
+    { id: "zona", domanda: "In quale zona?", tipo: "text", placeholder: "Es. Pescara e costa teatina" },
+    { id: "ral_aspettativa", domanda: "Quanto vorresti guadagnare?", tipo: "select", opzioni: RETRIBUZIONI },
+    { id: "anni_esperienza", domanda: "Quanta esperienza hai nel settore?", tipo: "select", opzioni: ESPERIENZA },
+];
+
+const DOMANDE_WORKER: Domanda[] = [
+    { id: "settore", domanda: "In quale settore vuoi lavorare?", tipo: "select", opzioni: SETTORI },
+    { id: "ral_aspettativa", domanda: "Qual è la tua aspettativa di retribuzione?", tipo: "select", opzioni: RETRIBUZIONI },
     { id: "livello_istruzione", domanda: "Qual è il tuo livello di istruzione?", tipo: "select", opzioni: [{ label: "Licenza media", value: "licenza_media" }, { label: "Diploma", value: "diploma" }, { label: "Laurea Triennale", value: "laurea_triennale" }, { label: "Laurea Magistrale", value: "laurea_magistrale" }] },
-    { id: "anni_esperienza", domanda: "Quanti anni di esperienza hai nel settore?", tipo: "select", opzioni: [{ label: "Nessuna esperienza", value: "0" }, { label: "Meno di 1 anno", value: "1" }, { label: "1 – 3 anni", value: "2" }, { label: "3 – 5 anni", value: "4" }, { label: "5 – 10 anni", value: "7" }, { label: "Oltre 10 anni", value: "11" }] },
+    { id: "anni_esperienza", domanda: "Quanti anni di esperienza hai nel settore?", tipo: "select", opzioni: ESPERIENZA },
     { id: "certificazioni", domanda: "Hai certificazioni o titoli specifici?", tipo: "text", placeholder: "Es. HACCP, AIBES, Patente nautica... (opzionale)" },
 ];
 
-const DOMANDE_COMPANY = [
+const DOMANDE_COMPANY: Domanda[] = [
     { id: "settore", domanda: "In quale settore opera la tua azienda?", tipo: "select", opzioni: ["Ristorazione / HoReCa", "Turismo / Hospitality", "Eventi", "Logistica", "Commercio / Retail", "IT / Digitale", "Altro"] },
-    { id: "ral_aspettativa", domanda: "Qual è la retribuzione media che offri?", tipo: "select", opzioni: ["Meno di €1.000/mese", "€1.000 – €1.500/mese", "€1.500 – €2.000/mese", "€2.000 – €3.000/mese", "Oltre €3.000/mese", "Tariffa giornaliera / Freelance"] },
+    { id: "ral_aspettativa", domanda: "Qual è la retribuzione media che offri?", tipo: "select", opzioni: RETRIBUZIONI },
     { id: "dimensione_azienda", domanda: "Che dimensione ha la tua azienda?", tipo: "select", opzioni: [{ label: "Micro (1-5 dipendenti)", value: "micro" }, { label: "Piccola (6-20 dipendenti)", value: "piccola" }, { label: "Media (21-50 dipendenti)", value: "media" }, { label: "Grande (50+ dipendenti)", value: "grande" }] },
     { id: "anni_esperienza", domanda: "Da quanti anni è attiva l'azienda?", tipo: "select", opzioni: [{ label: "Meno di 1 anno", value: "1" }, { label: "1 – 3 anni", value: "2" }, { label: "3 – 5 anni", value: "4" }, { label: "5 – 10 anni", value: "7" }, { label: "Oltre 10 anni", value: "11" }] },
     { id: "certificazioni", domanda: "Hai certificazioni o requisiti specifici per i candidati?", tipo: "text", placeholder: "Es. HACCP obbligatorio, patente B... (opzionale)" },
@@ -22,21 +56,27 @@ const DOMANDE_COMPANY = [
 export default function OnboardingPage() {
     const navigate = useNavigate();
     const { fetchUser, user } = useAuth();
-    const DOMANDE = user?.role === "COMPANY" ? DOMANDE_COMPANY : DOMANDE_WORKER;
     const [step, setStep] = useState(0);
     const [risposte, setRisposte] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(false);
     const [errore, setErrore] = useState("");
 
+    const DOMANDE: Domanda[] = user?.role === "COMPANY"
+        ? DOMANDE_COMPANY
+        : [PERCORSO, ...(risposte.percorso === "stagionale" ? DOMANDE_STAGIONALE : DOMANDE_WORKER)];
+
     const domanda = DOMANDE[step];
     const isUltimo = step === DOMANDE.length - 1;
+    // Il periodo vale come risposta quando c'è la data di inizio
+    const risposta = domanda.tipo === "periodo" ? risposte.disponibilita_da : risposte[domanda.id];
+    const facoltativa = domanda.id === "certificazioni";
 
-    const handleRisposta = (valore: string) => {
-        setRisposte((prev) => ({ ...prev, [domanda.id]: valore }));
+    const handleRisposta = (valore: string, campo = domanda.id) => {
+        setRisposte((prev) => ({ ...prev, [campo]: valore }));
     };
 
     const handleAvanti = () => {
-        if (!risposte[domanda.id] && domanda.id !== "certificazioni") return;
+        if (!risposta && !facoltativa) return;
         if (isUltimo) {
             handleSubmit();
         } else {
@@ -55,8 +95,9 @@ export default function OnboardingPage() {
             });
             await fetchUser();
             navigate("/feed");
-        } catch {
-            setErrore("Errore durante il salvataggio. Riprova.");
+        } catch (err: any) {
+            const errors = err?.response?.data?.errors;
+            setErrore(errors ? (Object.values(errors)[0] as string[])[0] : "Errore durante il salvataggio. Riprova.");
         } finally {
             setLoading(false);
         }
@@ -112,11 +153,33 @@ export default function OnboardingPage() {
                     />
                 )}
 
+                {domanda.tipo === "periodo" && (
+                    <div className="grid grid-cols-2 gap-3">
+                        {[
+                            { campo: "disponibilita_da", label: "Dal" },
+                            { campo: "disponibilita_a", label: "Al" },
+                        ].map(({ campo, label }) => (
+                            <label key={campo} className="min-w-0 text-xs text-slate-500">
+                                {label}
+                                <input
+                                    type="date"
+                                    value={risposte[campo] || ""}
+                                    min={campo === "disponibilita_a" ? risposte.disponibilita_da : undefined}
+                                    onChange={(e) => handleRisposta(e.target.value, campo)}
+                                    className="mt-1 w-full max-w-full min-w-0 appearance-none border border-slate-200 rounded-xl px-3 py-3 text-sm bg-white text-slate-700"
+                                />
+                            </label>
+                        ))}
+                    </div>
+                )}
+
+                {domanda.nota && <p className="text-xs text-slate-400 mt-3">{domanda.nota}</p>}
+
                 {errore && <p className="text-red-500 text-sm mt-3">{errore}</p>}
 
                 <button
                     onClick={handleAvanti}
-                    disabled={loading || (!risposte[domanda.id] && domanda.id !== "certificazioni")}
+                    disabled={loading || (!risposta && !facoltativa)}
                     className="mt-6 w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition disabled:opacity-40"
                 >
                     {loading ? "Salvataggio..." : isUltimo ? "Completa profilo" : "Avanti →"}

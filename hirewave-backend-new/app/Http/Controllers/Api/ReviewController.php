@@ -49,12 +49,8 @@ class ReviewController extends Controller
             ]
         );
 
-        // Media stelle sul profilo recensito
-        $avg = Review::where('worker_id', $target->id)->avg('stars');
-
-        User::where('id', $target->id)->update([
-            'rating_reputazionale' => round($avg, 1)
-        ]);
+        // Media ponderata delle stelle sul profilo recensito
+        Review::aggiornaRating($target->id);
 
         if ($isNew) {
             $target->notify(new HireWaveNotification(
@@ -77,7 +73,7 @@ class ReviewController extends Controller
 
         return response()->json([
             'reviews' => $reviews,
-            'average' => round($reviews->avg('stars') ?? 0, 1),
+            'average' => Review::mediaPonderata($reviews),
             'count' => $reviews->count(),
         ]);
     }

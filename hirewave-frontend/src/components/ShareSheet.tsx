@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useBackClose } from "../hooks/useBackClose";
 import {
     ChatBubbleLeftIcon,
     CheckIcon,
@@ -37,6 +38,7 @@ export default function ShareSheet({ postId, title, onClose }: Props) {
     const [copied, setCopied] = useState(false);
     const url = postShareUrl(postId);
     const targets = shareTargets(title, url);
+    useBackClose(true, onClose);
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();

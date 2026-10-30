@@ -11,15 +11,27 @@ class OnboardingController extends Controller
     {
         $user = Auth::user();
         $isCompany = $user->role === 'COMPANY';
+        // Due percorsi, stesso prodotto (business plan, par. 2.3): stagionale rapido
+        // (disponibilità e zona, titolo facoltativo) o certificato (5 domande)
+        $stagionale = !$isCompany && $request->input('percorso') === 'stagionale';
+        $livelli = 'in:licenza_media,diploma,laurea_triennale,laurea_magistrale';
 
         $request->validate([
+            'percorso' => 'nullable|in:stagionale,certificato',
             'settore' => 'required|string|max:100',
             'ral_aspettativa' => 'required|string|max:100',
             // Lavoratori: titolo di studio. Aziende: dimensione aziendale
-            'livello_istruzione' => $isCompany ? 'nullable|string' : 'required|in:licenza_media,diploma,laurea_triennale,laurea_magistrale',
+            'livello_istruzione' => match (true) {
+                $isCompany => 'nullable|string',
+                $stagionale => "nullable|$livelli",
+                default => "required|$livelli",
+            },
             'dimensione_azienda' => $isCompany ? 'required|in:micro,piccola,media,grande' : 'nullable',
             'anni_esperienza' => 'required|integer|min:0|max:50',
             'certificazioni' => 'nullable|string|max:500',
+            'disponibilita_da' => $stagionale ? 'required|date' : 'nullable|date',
+            'disponibilita_a' => 'nullable|date|after_or_equal:disponibilita_da',
+            'zona' => $stagionale ? 'required|string|max:120' : 'nullable|string|max:120',
         ]);
 
         $data = [
@@ -30,6 +42,16 @@ class OnboardingController extends Controller
             'badge' => 'grigio',
             'onboarding_completato' => true,
         ];
+
+        if (!$isCompany) {
+            $data['percorso'] = $stagionale ? 'stagionale' : 'certificato';
+            $data['disponibilita_da'] = $request->disponibilita_da;
+            $data['disponibilita_a'] = $request->disponibilita_a;
+            $data['zona'] = $request->zona;
+            if ($request->filled('disponibilita_da')) {
+                $data['available'] = true;
+            }
+        }
 
         if ($isCompany) {
             // Il rating tecnico non si calcola per le aziende (la colonna vuole un valore: resta 0)

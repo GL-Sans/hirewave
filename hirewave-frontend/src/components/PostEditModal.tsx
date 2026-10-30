@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axiosClient from "../api/axiosClient";
 import type { FeedPost } from "../types/Feed";
+import { useBackClose } from "../hooks/useBackClose";
 
 const CONTRACT_TYPES = [
     "Contratto a tempo indeterminato",
@@ -31,6 +32,7 @@ export default function PostEditModal({ post, onClose, onSaved }: Props) {
     const [removeImage, setRemoveImage] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+    useBackClose(true, onClose);
 
     const set = (key: keyof typeof form) =>
         (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>

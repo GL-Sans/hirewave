@@ -31,9 +31,17 @@ class CurriculumController extends Controller
             'skills.*'         => 'string|max:50',
             'languages'        => 'nullable|array',
             'languages.*'      => 'string|max:50',
+            // Scelta nell'onboarding, modificabile qui (talenti: attesa; aziende: offerta media)
+            'ral_aspettativa'  => 'sometimes|string|max:100',
             // Dati del rating: solo per lavoratori e professionisti
             'livello_istruzione' => $isCompany ? 'prohibited' : 'sometimes|in:licenza_media,diploma,laurea_triennale,laurea_magistrale',
             'certificazioni'     => $isCompany ? 'prohibited' : 'sometimes|nullable|string|max:500',
+            // Disponibilità (visibile a tutti) e dettagli del titolo (visibili dopo lo sblocco)
+            'disponibilita_da'   => $isCompany ? 'prohibited' : 'sometimes|nullable|date',
+            'disponibilita_a'    => $isCompany ? 'prohibited' : 'sometimes|nullable|date|after_or_equal:disponibilita_da',
+            'zona'               => $isCompany ? 'prohibited' : 'sometimes|nullable|string|max:120',
+            'istituto'           => $isCompany ? 'prohibited' : 'sometimes|nullable|string|max:150',
+            'anno_titolo'        => $isCompany ? 'prohibited' : 'sometimes|nullable|integer|min:1940|max:' . (now()->year + 1),
         ]);
 
         // Un solo dato di esperienza: allinea quello dell'onboarding

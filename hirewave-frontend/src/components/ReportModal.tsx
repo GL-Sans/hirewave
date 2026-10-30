@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axiosClient from "../api/axiosClient";
+import { useBackClose } from "../hooks/useBackClose";
 
 const REASONS = [
     { value: "spam", label: "Spam o pubblicità" },
@@ -21,6 +22,7 @@ export default function ReportModal({ postId, onClose, onReported }: Props) {
     const [details, setDetails] = useState("");
     const [sending, setSending] = useState(false);
     const [error, setError] = useState("");
+    useBackClose(true, onClose);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

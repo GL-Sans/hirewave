@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { UserIcon } from "@heroicons/react/24/solid";
+import { InformationCircleIcon } from "@heroicons/react/24/outline";
 import axiosClient from "../api/axiosClient";
 import FeedCard from "../components/FeedCard";
 import type { FeedPost } from "../types/Feed";
 import { useAuth } from "../context/AuthContext";
 import { profileIdFromParam, profilePath } from "../utils/profilePath";
-import { companySizeLabel, euro, istruzioneLabel, PIANI, roleLabel, unlockPrice, VERIFICA_PREMIUM_PRICE } from "../utils/labels";
-import type { Piano } from "../utils/labels";
-import { avviaSblocco, messaggioErrore } from "../utils/sblocco";
+import { companySizeLabel, disponibilitaLabel, euro, istruzioneLabel, MERCATO, PIANI, roleLabel, unlockPrice, VERIFICA_PREMIUM_PRICE } from "../utils/labels";
+import type { EsitoMercato, Piano } from "../utils/labels";
+import { avviaSblocco, avvisoSblocco, messaggioErrore } from "../utils/sblocco";
 import RatingBreakdown from "../components/RatingBreakdown";
 import DocumentiVerifica from "../components/DocumentiVerifica";
+import Candidature from "../components/Candidature";
 import type { Documento, DocumentoPreset, RatingDettaglio, RatingStorico } from "../types/Rating";
 
 // Stessa divisione del backend (RatingTecnico::certificazioniDa)
@@ -21,9 +23,11 @@ function certificazioniDa(testo?: string | null) {
 async function scaricaFile(url: string, nome: string) {
     const response = await axiosClient.get(url, { responseType: "blob" });
     const href = window.URL.createObjectURL(new Blob([response.data]));
+    // Nome scelto dal server, se lo indica (es. "CV Mario Rossi.docx")
+    const dalServer = String(response.headers["content-disposition"] ?? "").match(/filename\*?=(?:UTF-8'')?"?([^";]+)/i);
     const link = document.createElement("a");
     link.href = href;
-    link.setAttribute("download", nome);
+    link.setAttribute("download", dalServer ? decodeURIComponent(dalServer[1]) : nome);
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -68,6 +72,24 @@ function Info({ label, children }: { label: string; children: React.ReactNode })
     );
 }
 
+// Pulsante "i" che apre/chiude un testo esplicativo
+function InfoToggle({ open, onToggle, label }: { open: boolean; onToggle: () => void; label: string }) {
+    return (
+        <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={open}
+            aria-label={label}
+            title={label}
+            className={`w-6! h-6! p-0! rounded-full! border-0! inline-flex items-center justify-center transition-colors ${
+                open ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-blue-50 hover:text-blue-600"
+            }`}
+        >
+            <InformationCircleIcon className="w-4 h-4" />
+        </button>
+    );
+}
+
 function PianoPill({ piano }: { piano?: Piano | null }) {
     if (!piano) return null;
     return piano === "boost" ? (
@@ -103,6 +125,8 @@ export default function ProfilePage() {
     const [uploadPreset, setUploadPreset] = useState<DocumentoPreset | null>(null);
     const [buyingPremium, setBuyingPremium] = useState(false);
     const [notice, setNotice] = useState("");
+    const [unlockInfo, setUnlockInfo] = useState(false);
+    const [reviewsInfo, setReviewsInfo] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cvInputRef = useRef<HTMLInputElement>(null);
     const { user: loggedUser, fetchUser, logout } = useAuth();
@@ -165,6 +189,7 @@ export default function ProfilePage() {
 
                     setPosts(postsRes.data);
                     setReviews(reviewsRes.data.reviews ?? []);
+                    setUser((u: any) => ({ ...u, rating_reputazionale_avg: reviewsRes.data.average }));
                 }
             } catch (err) {
                 console.error("Errore caricamento profilo:", err);
@@ -254,8 +279,9 @@ export default function ProfilePage() {
         try {
             const fatto = await avviaSblocco(user.id, "profile");
             if (fatto) {
-                setNotice("Profilo sbloccato (pagamento demo): nome, contatti e chat disponibili per 30 giorni.");
+                setNotice(avvisoSblocco(fatto, "nome, contatti, curriculum e chat disponibili per 30 giorni"));
                 setReloadKey((k) => k + 1);
+                if (fatto === "gratuito") fetchUser();
             }
         } catch (err) {
             alert(messaggioErrore(err));
@@ -326,6 +352,11 @@ export default function ProfilePage() {
     const handleDownloadCv = async (e: React.MouseEvent) => {
         e.preventDefault();
         try {
+            if (!isMyProfile) {
+                // CV di un profilo sbloccato
+                await scaricaFile(`/api/profiles/${user.id}/cv`, `CV ${user.first_name} ${user.last_name ?? ""}.pdf`);
+                return;
+            }
             const filename = user.cv ? user.cv.split("/").pop() : "cv_hirewave.pdf";
             await scaricaFile("/api/me/cv/download", filename || "cv_hirewave.pdf");
         } catch (err) {
@@ -362,7 +393,11 @@ export default function ProfilePage() {
         ? `/storage/${user.profile_image}`
         : null;
     const isTalent = user.role !== "COMPANY";
-    const reviewAvg = reviews.length ? reviews.reduce((s, r) => s + r.stars, 0) / reviews.length : 0;
+    // Media ponderata calcolata dal server: le recensioni recenti pesano di più
+    const reviewAvg = Number(user.rating_reputazionale_avg ?? 0);
+    const mercato = user.mercato ? MERCATO[user.mercato.esito as EsitoMercato] : null;
+    const disponibilita = isTalent ? disponibilitaLabel(user) : "";
+    const gratuiti = loggedUser?.sblocchi_gratuiti_rimasti ?? 0;
 
     return (
         <div className="max-w-5xl mx-auto space-y-6">
@@ -429,6 +464,11 @@ export default function ProfilePage() {
                                 </span>
                             )}
                             <PianoPill piano={user.piano} />
+                            {user.percorso === "stagionale" && (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-100 text-sky-700 border border-sky-200">
+                                    ☀ Stagionale
+                                </span>
+                            )}
                         </div>
 
                         {reviews.length > 0 && (
@@ -450,27 +490,44 @@ export default function ProfilePage() {
                             <div className="w-full space-y-2 pt-1">
                                 {user.can_unlock && (
                                     <>
-                                        <button
-                                            onClick={handleUnlock}
-                                            disabled={unlocking}
-                                            className="w-full px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50"
-                                        >
-                                            {unlocking
-                                                ? "Sblocco in corso…"
-                                                : `Sblocca · €${user.unlock_price ? euro(user.unlock_price) : unlockPrice(user.badge)}`}
-                                        </button>
-                                        <p className="text-[11px] text-slate-400">
-                                            Nome, contatti e chat per 30 giorni.{" "}
-                                            {user.badge === "verde" ? "Dati verificati con documenti." : "Dati dichiarati, non ancora verificati."}
-                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={handleUnlock}
+                                                disabled={unlocking}
+                                                className="flex-1 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50"
+                                            >
+                                                {unlocking
+                                                    ? "Sblocco in corso…"
+                                                    : gratuiti > 0
+                                                        ? `Sblocca gratis · ${gratuiti} ${gratuiti === 1 ? "rimasto" : "rimasti"}`
+                                                        : `Sblocca · €${user.unlock_price ? euro(user.unlock_price) : unlockPrice(user.badge)}`}
+                                            </button>
+                                            <InfoToggle open={unlockInfo} onToggle={() => setUnlockInfo((o) => !o)} label="Cosa ottieni sbloccando" />
+                                        </div>
+                                        {unlockInfo && (
+                                            <p className="text-[11px] text-slate-500 text-left">
+                                                Nome, email, telefono, istituto e anno del titolo, curriculum completo
+                                                {user.curriculum_sbloccabile && !user.curriculum_public ? " (anche se reso privato)" : ""}
+                                                , CV se caricato e chat libera per 30 giorni.{" "}
+                                                {user.badge === "verde" ? "Dati verificati con documenti." : "Dati dichiarati, non ancora verificati."}
+                                            </p>
+                                        )}
                                     </>
+                                )}
+                                {user.has_cv && (
+                                    <button
+                                        onClick={handleDownloadCv}
+                                        className="w-full px-4 py-2 bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm font-medium rounded-xl hover:bg-indigo-100"
+                                    >
+                                        Scarica CV
+                                    </button>
                                 )}
                                 {user.can_contact && (
                                     <Link
                                         to={`/chat?to=${user.id}`}
                                         className="flex justify-center w-full px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-700"
                                     >
-                                        Scrivi un messaggio
+                                        {user.chat_libera ? "Scrivi un messaggio" : "Invia un messaggio rapido"}
                                     </Link>
                                 )}
                             </div>
@@ -529,7 +586,10 @@ export default function ProfilePage() {
                             <p className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-xl px-3 py-2">{notice}</p>
                         )}
 
-                        {/* Descrizione */}
+                        {/* Descrizione: nello stesso riquadro degli altri dati */}
+                        {(isEditingDescription || user.description || isMyProfile) && (
+                        <div className="border border-slate-200 rounded-xl p-4">
+                        <span className="text-sm font-semibold text-slate-700 block mb-2">Descrizione</span>
                         {isEditingDescription ? (
                             <div>
                                 <textarea
@@ -578,6 +638,8 @@ export default function ProfilePage() {
                                 </button>
                             )
                         )}
+                        </div>
+                        )}
 
                         <div className={`grid gap-4 ${isTalent && ratingDettaglio ? "lg:grid-cols-2" : ""}`}>
                             {/* Dati aziendali pubblici */}
@@ -593,12 +655,36 @@ export default function ProfilePage() {
                             )}
 
                             {/* Dati di valutazione visibili prima dello sblocco (business plan, par. 5.1) */}
-                            {isTalent && (user.settore || user.livello_istruzione || user.ral_aspettativa) && (
+                            {isTalent && (user.settore || user.livello_istruzione || user.ral_aspettativa || disponibilita) && (
                                 <div className="border border-slate-200 rounded-xl p-4 space-y-1.5 text-xs text-slate-500">
                                     <span className="text-sm font-semibold text-slate-700 block mb-2">Profilo professionale</span>
                                     {user.settore && <Info label="Settore">{user.settore}</Info>}
-                                    {user.livello_istruzione && <Info label="Titolo di studio">{istruzioneLabel(user.livello_istruzione)}</Info>}
-                                    {user.ral_aspettativa && <Info label="Retribuzione attesa">{user.ral_aspettativa}</Info>}
+                                    {user.livello_istruzione && (
+                                        <Info label="Titolo di studio">
+                                            {istruzioneLabel(user.livello_istruzione)}
+                                            {/* Istituto e anno: solo dopo lo sblocco */}
+                                            {(user.istituto || user.anno_titolo) && (
+                                                <span className="block font-normal text-slate-500">
+                                                    {[user.istituto, user.anno_titolo].filter(Boolean).join(", ")}
+                                                </span>
+                                            )}
+                                        </Info>
+                                    )}
+                                    {user.ral_aspettativa && (
+                                        <Info label="Retribuzione attesa">
+                                            {user.ral_aspettativa}
+                                            {mercato && (
+                                                <span
+                                                    className={`ml-1.5 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${mercato.classi}`}
+                                                    title={`Media degli annunci (${user.mercato.settore}): €${user.mercato.media}/mese`}
+                                                >
+                                                    {mercato.label}
+                                                </span>
+                                            )}
+                                        </Info>
+                                    )}
+                                    {disponibilita && <Info label="Disponibilità">{disponibilita}</Info>}
+                                    {user.zona && <Info label="Zona">{user.zona}</Info>}
                                 </div>
                             )}
 
@@ -612,7 +698,7 @@ export default function ProfilePage() {
                             )}
                         </div>
 
-                        {/* Contatti, visibili dopo lo sblocco o con curriculum pubblico */}
+                        {/* Contatti, visibili solo dopo lo sblocco */}
                         {!isMyProfile && (user.email || user.phone) && (
                             <div className="border border-slate-200 rounded-xl p-4 space-y-1.5 text-xs text-slate-500">
                                 <span className="text-sm font-semibold text-slate-700 block mb-2">Contatti</span>
@@ -691,7 +777,10 @@ export default function ProfilePage() {
             {/* Recensioni */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h2 className="text-xl font-bold text-slate-800">Recensioni</h2>
+                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        Recensioni
+                        <InfoToggle open={reviewsInfo} onToggle={() => setReviewsInfo((o) => !o)} label="Chi può recensire" />
+                    </h2>
                     {reviews.length > 0 && (
                         <div className="flex items-center gap-2 text-sm text-slate-600">
                             <Stars value={reviewAvg} />
@@ -702,9 +791,11 @@ export default function ProfilePage() {
                         </div>
                     )}
                 </div>
-                <p className="text-xs text-slate-400 -mt-2">
-                    Solo da aziende e professionisti che hanno sbloccato il profilo.
-                </p>
+                {reviewsInfo && (
+                    <p className="text-xs text-slate-400 -mt-2">
+                        Solo da aziende e professionisti che hanno sbloccato il profilo. Media ponderata: le recensioni dell'ultimo anno pesano di più.
+                    </p>
+                )}
 
                 {reviews.length === 0 ? (
                     <p className="text-sm text-slate-500">Nessuna recensione per ora.</p>
@@ -783,6 +874,9 @@ export default function ProfilePage() {
                     </form>
                 )}
             </div>
+
+            {/* Candidature inviate (talenti) o ricevute (aziende), accanto alle attività */}
+            {isMyProfile && <Candidature isCompany={!isTalent} />}
 
             {/* Posts / Content Area */}
             <div className="bg-slate-50 rounded-2xl">

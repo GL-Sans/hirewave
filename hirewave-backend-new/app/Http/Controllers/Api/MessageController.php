@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Notifications\HireWaveNotification;
+use App\Support\Chat;
 use App\Support\ProfileAccess;
 
 class MessageController extends Controller
@@ -62,10 +63,16 @@ class MessageController extends Controller
             $q->where('sender_id', $other->id)->where('receiver_id', $me->id);
         })->oldest()->get(['id', 'sender_id', 'receiver_id', 'body', 'read_at', 'created_at']);
 
+        $libera = Chat::libera($me, $other);
+
         return response()->json([
             'contact' => $this->presentUser($me, $other),
             'messages' => $messages,
-            'can_send' => $this->canMessage($me, $other),
+            // Tra pari la conversazione resta leggibile ma non si scrive più
+            'can_chat' => Chat::consentita($me, $other),
+            // Testo libero solo con sblocco attivo; altrimenti messaggi preimpostati
+            'can_send' => $libera,
+            'preset' => $libera || $me->id === $other->id ? [] : Chat::presetPerFrontend($me, $other),
             'sblocco' => $this->offertaSblocco($me, $other),
         ]);
     }
@@ -97,21 +104,36 @@ class MessageController extends Controller
         $other = User::findOrFail($userId);
 
         $validated = $request->validate([
-            'body' => 'required|string|max:2000',
+            'body' => 'required_without:preset|nullable|string|max:2000',
+            'preset' => 'nullable|string|max:30',
         ]);
 
-        if (!$this->canMessage($me, $other)) {
-            return response()->json([
-                'message' => $me->role === 'COMPANY'
-                    ? 'Sblocca il profilo per scrivere a questo utente'
-                    : 'Non puoi scrivere a questo utente',
-            ], 403);
+        if ($me->id === $other->id) {
+            return response()->json(['message' => 'Non puoi scrivere a te stesso'], 422);
+        }
+
+        if (!Chat::consentita($me, $other)) {
+            return response()->json(['message' => Chat::MSG_TRA_PARI], 403);
+        }
+
+        if (Chat::libera($me, $other) && !empty($validated['body'])) {
+            $body = $validated['body'];
+        } else {
+            $preset = Chat::preset($me, $other);
+            if (empty($validated['preset']) || !isset($preset[$validated['preset']])) {
+                return response()->json([
+                    'message' => ProfileAccess::canUnlock($me, $other)
+                        ? 'Sblocca il profilo per scrivere liberamente: prima puoi inviare solo messaggi preimpostati'
+                        : 'Prima dello sblocco puoi inviare solo messaggi preimpostati',
+                ], 403);
+            }
+            $body = $preset[$validated['preset']];
         }
 
         $message = Message::create([
             'sender_id' => $me->id,
             'receiver_id' => $other->id,
-            'body' => $validated['body'],
+            'body' => $body,
         ]);
 
         // Una sola notifica finché la precedente dello stesso mittente non è letta
@@ -133,34 +155,6 @@ class MessageController extends Controller
         }
 
         return response()->json($message, 201);
-    }
-
-    /**
-     * Regole:
-     * - lavoratori e professionisti possono scrivere a chiunque
-     * - un'azienda può scrivere a un lavoratore solo se ha sbloccato il profilo
-     * - tra aziende si può solo rispondere a chi ti ha scritto
-     */
-    private function canMessage(User $me, User $other): bool
-    {
-        if ($me->id === $other->id) {
-            return false;
-        }
-
-        if ($me->role !== 'COMPANY') {
-            return true;
-        }
-
-        if ($other->role !== 'COMPANY') {
-            return $this->isUnlocked($me->id, $other->id);
-        }
-
-        return Message::where('sender_id', $other->id)->where('receiver_id', $me->id)->exists();
-    }
-
-    private function isUnlocked($companyId, $workerId): bool
-    {
-        return ProfileAccess::isUnlocked($companyId, $workerId);
     }
 
     // Stesse regole di anonimato di feed e profili

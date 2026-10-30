@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { PaperAirplaneIcon, SparklesIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import axiosClient from "../api/axiosClient";
 import { useAuth } from "../context/AuthContext";
+import { useBackClose } from "../hooks/useBackClose";
 
 type Azione = { label: string; to: string };
 type Messaggio = { id: number | string; autore: "utente" | "tutor"; testo: string; azioni?: Azione[] };
@@ -25,6 +26,9 @@ export default function TutorChat() {
     const [errore, setErrore] = useState("");
     const listRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const isMobile = window.matchMedia("(max-width: 767px)").matches;
+    // Su telefono il tutor copre la pagina: "indietro" lo chiude
+    useBackClose(open && isMobile, () => setOpen(false));
 
     // Conversazione caricata solo alla prima apertura
     useEffect(() => {
@@ -134,7 +138,8 @@ export default function TutorChat() {
                                                 <Link
                                                     key={a.to + a.label}
                                                     to={a.to}
-                                                    onClick={() => window.matchMedia("(max-width: 767px)").matches && setOpen(false)}
+                                                    replace={isMobile}
+                                                    onClick={() => isMobile && setOpen(false)}
                                                     className="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-2.5 py-1 hover:bg-blue-100"
                                                 >
                                                     {a.label} →
@@ -175,6 +180,7 @@ export default function TutorChat() {
                         {esaurito ? (
                             <Link
                                 to="/abbonamenti"
+                                replace={isMobile}
                                 onClick={() => setOpen(false)}
                                 className="block text-center text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-blue-600 rounded-xl py-2.5"
                             >

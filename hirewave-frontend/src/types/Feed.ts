@@ -21,4 +21,6 @@ export type FeedPost = {
     image?: string | null;
     created_at: string;
     user: FeedUser;
+    // Mi sono già candidato a questo annuncio
+    candidato?: boolean;
 };

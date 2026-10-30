@@ -82,15 +82,6 @@ export default function RatingBreakdown({ dettaglio, storico, curriculumPath, on
                 {/* Tetto dei dati solo dichiarati */}
                 <div className="absolute -top-1 h-4.5 border-l-2 border-dashed border-slate-400" style={{ left: `${max_dichiarato}%` }} />
             </div>
-            <p className="mt-1.5 text-[11px] text-slate-500">
-                {voci.map((v, i) => (
-                    <span key={v.chiave}>
-                        {i > 0 && " + "}
-                        <span className={`inline-block w-2 h-2 rounded-full align-middle mr-1 ${COLORI[v.chiave]}`} />
-                        {v.punti} {v.etichetta.toLowerCase()}
-                    </span>
-                ))}
-            </p>
             {!open && guadagno > 0 && (
                 <button
                     type="button"
@@ -102,6 +93,15 @@ export default function RatingBreakdown({ dettaglio, storico, curriculumPath, on
             )}
 
             {open && (<>
+            <p className="mt-1.5 text-[11px] text-slate-500">
+                {voci.map((v, i) => (
+                    <span key={v.chiave}>
+                        {i > 0 && " + "}
+                        <span className={`inline-block w-2 h-2 rounded-full align-middle mr-1 ${COLORI[v.chiave]}`} />
+                        {v.punti} {v.etichetta.toLowerCase()}
+                    </span>
+                ))}
+            </p>
             <p className="mt-2 text-[11px] text-slate-400">
                 Linea tratteggiata: {max_dichiarato} è il massimo con dati solo dichiarati. Oltre si sale verificandoli con documenti.
             </p>

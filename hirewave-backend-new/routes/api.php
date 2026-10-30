@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\DocumentoController;
 use App\Http\Controllers\Api\AdminDocumentoController;
 use App\Http\Controllers\Api\TutorController;
+use App\Http\Controllers\Api\CandidaturaController;
 use App\Http\Middleware\EnsureAdmin;
 
 // I limiti (throttle:...) sono definiti in AppServiceProvider::configureRateLimits
@@ -52,6 +53,9 @@ Route::middleware(['web', 'auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/profile/{name}', [PublicProfileController::class, 'show']);
     Route::get('/profiles/{id}/posts', [PublicProfileController::class, 'posts'])->whereNumber('id');
     Route::get('/profiles/{id}/reviews', [ReviewController::class, 'index'])->whereNumber('id');
+    // CV di un profilo sbloccato
+    Route::get('/profiles/{id}/cv', [ProfileController::class, 'downloadCvDi'])->whereNumber('id');
+    Route::get('/me/candidature', [CandidaturaController::class, 'index']);
     Route::get('/conversations', [MessageController::class, 'conversations']);
     Route::get('/messages/{user}', [MessageController::class, 'index'])->whereNumber('user');
     Route::get('/notifications', [NotificationController::class, 'index']);
@@ -102,6 +106,8 @@ Route::middleware(['web', 'auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/posts/{post}/hide', [PostController::class, 'hide'])->whereNumber('post');
         Route::delete('/posts/{post}/hide', [PostController::class, 'unhide'])->whereNumber('post');
         Route::post('/posts/{post}/report', [PostController::class, 'report'])->whereNumber('post');
+        Route::post('/posts/{post}/candidatura', [CandidaturaController::class, 'store'])->whereNumber('post');
+        Route::delete('/posts/{post}/candidatura', [CandidaturaController::class, 'destroy'])->whereNumber('post');
         Route::post('/saved/{user}', [ConnectionController::class, 'toggleSave'])->whereNumber('user');
         Route::post('/follow/{user}', [ConnectionController::class, 'toggleFollow'])->whereNumber('user');
     });

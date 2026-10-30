@@ -15,6 +15,8 @@ interface User {
     badge?: string;
     rating_tecnico?: number;
     piano?: "premium" | "boost" | null;
+    // Aziende: sblocchi gratuiti del lancio alpha ancora disponibili
+    sblocchi_gratuiti_rimasti?: number;
 }
 
 interface RegisterData {

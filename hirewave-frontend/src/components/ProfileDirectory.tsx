@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import axiosClient from "../api/axiosClient";
 import SearchBar from "./SearchBar";
 import TalentCard from "./TalentCard";
-import { istruzioneLabel } from "../utils/labels";
+import { disponibilitaLabel, istruzioneLabel } from "../utils/labels";
+import type { EsitoMercato } from "../utils/labels";
 
 export type DirectoryProfile = {
     id: number;
@@ -21,6 +22,17 @@ export type DirectoryProfile = {
     can_unlock?: boolean;
     unlock_price?: number;
     piano?: "premium" | "boost" | null;
+    // Talenti: dati visibili prima dello sblocco
+    rating_reputazionale?: number | null;
+    recensioni?: number;
+    ral_aspettativa?: string | null;
+    ral_mensile?: number | null;
+    mercato?: EsitoMercato | null;
+    available?: boolean | null;
+    disponibilita_da?: string | null;
+    disponibilita_a?: string | null;
+    zona?: string | null;
+    percorso?: string | null;
 };
 
 type Chip = { label: string; value: string };
@@ -32,7 +44,27 @@ type Props = {
     // Filtri "rapidi" (es. ruolo, Salvati, Seguite)
     chips: Chip[];
     beforeLoad?: () => Promise<void>;
+    // Filtri per rating e retribuzione (solo Talenti)
+    filtriTalenti?: boolean;
 };
+
+const RATING_MIN = [
+    { label: "Qualsiasi rating", value: 0 },
+    { label: "Rating 40+", value: 40 },
+    { label: "Rating 60+", value: 60 },
+    { label: "Rating 80+", value: 80 },
+];
+
+// Retribuzione mensile massima che l'azienda offre
+const RAL_MAX = [
+    { label: "Qualsiasi retribuzione", value: 0 },
+    { label: "Fino a €1.000/mese", value: 1000 },
+    { label: "Fino a €1.500/mese", value: 1500 },
+    { label: "Fino a €2.000/mese", value: 2000 },
+    { label: "Fino a €3.000/mese", value: 3000 },
+];
+
+const selectFiltro = "border border-slate-200 rounded-full px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white";
 
 const SETTORI = [
     "Tutti i settori",
@@ -55,7 +87,14 @@ function matchesChip(p: DirectoryProfile, chip: string) {
     if (chip === "SAVED") return !!p.saved;
     if (chip === "FOLLOWED") return !!p.followed;
     if (chip === "VERIFIED") return p.badge === "verde";
+    if (chip === "SEASONAL") return p.percorso === "stagionale";
+    if (chip === "MARKET") return p.mercato === "in_linea";
     return p.role === chip;
+}
+
+// Disponibilità breve per la card: "Da subito · Pescara"
+function disponibilitaCard(p: DirectoryProfile) {
+    return [disponibilitaLabel(p), p.zona].filter(Boolean).join(" · ");
 }
 
 function SkeletonCard() {
@@ -63,13 +102,16 @@ function SkeletonCard() {
 }
 
 // Elenco a card condiviso da Talenti e Aziende
-export default function ProfileDirectory({ endpoint, searchPlaceholder, emptyText, chips, beforeLoad }: Props) {
+export default function ProfileDirectory({ endpoint, searchPlaceholder, emptyText, chips, beforeLoad, filtriTalenti }: Props) {
     const [profiles, setProfiles] = useState<DirectoryProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [chip, setChip] = useState("ALL");
     const [settore, setSettore] = useState("Tutti i settori");
-    const [filtersOpen, setFiltersOpen] = useState(true);
+    const [ratingMin, setRatingMin] = useState(0);
+    const [ralMax, setRalMax] = useState(0);
+    // Filtri chiusi all'apertura: si aprono dal pulsante della barra di ricerca
+    const [filtersOpen, setFiltersOpen] = useState(false);
 
     const reload = useCallback(async () => {
         const res = await axiosClient.get(endpoint);
@@ -95,13 +137,17 @@ export default function ProfileDirectory({ endpoint, searchPlaceholder, emptyTex
                 (p.first_name ?? "").toLowerCase().includes(q) ||
                 (p.last_name ?? "").toLowerCase().includes(q) ||
                 p.settore?.toLowerCase().includes(q) ||
-                p.skills?.some((s) => s.toLowerCase().includes(q));
+                p.skills?.some((s) => s.toLowerCase().includes(q)) ||
+                p.zona?.toLowerCase().includes(q);
             const matchSettore = settore === "Tutti i settori" || p.settore === settore;
-            return matchSearch && matchesChip(p, chip) && matchSettore;
+            const matchRating = !ratingMin || (p.rating_tecnico ?? 0) >= ratingMin;
+            // Tariffe giornaliere/freelance non hanno un importo mensile: escluse dal filtro
+            const matchRal = !ralMax || (p.ral_mensile != null && p.ral_mensile <= ralMax);
+            return matchSearch && matchesChip(p, chip) && matchSettore && matchRating && matchRal;
         });
-    }, [profiles, search, chip, settore]);
+    }, [profiles, search, chip, settore, ratingMin, ralMax]);
 
-    const activeFilters = (chip !== "ALL" ? 1 : 0) + (settore !== "Tutti i settori" ? 1 : 0);
+    const activeFilters = (chip !== "ALL" ? 1 : 0) + (settore !== "Tutti i settori" ? 1 : 0) + (ratingMin ? 1 : 0) + (ralMax ? 1 : 0);
 
     const updateSaved = (id: number, saved: boolean) =>
         setProfiles((prev) => prev.map((p) => (p.id === id ? { ...p, saved } : p)));
@@ -149,6 +195,17 @@ export default function ProfileDirectory({ endpoint, searchPlaceholder, emptyTex
                             </button>
                         ))}
                     </div>
+
+                    {filtriTalenti && (
+                        <div className="flex flex-wrap gap-2">
+                            <select aria-label="Rating minimo" className={selectFiltro} value={ratingMin} onChange={(e) => setRatingMin(Number(e.target.value))}>
+                                {RATING_MIN.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                            </select>
+                            <select aria-label="Retribuzione massima" className={selectFiltro} value={ralMax} onChange={(e) => setRalMax(Number(e.target.value))}>
+                                {RAL_MAX.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                            </select>
+                        </div>
+                    )}
                 </>
             )}
 
@@ -172,6 +229,12 @@ export default function ProfileDirectory({ endpoint, searchPlaceholder, emptyTex
                                 followed={p.followed}
                                 rating={p.rating_tecnico}
                                 istruzione={istruzioneLabel(p.livello_istruzione)}
+                                stelle={p.rating_reputazionale}
+                                recensioni={p.recensioni}
+                                ral={p.ral_aspettativa}
+                                mercato={p.mercato}
+                                disponibilita={p.role === "COMPANY" ? undefined : disponibilitaCard(p)}
+                                stagionale={p.percorso === "stagionale"}
                                 canUnlock={p.can_unlock}
                                 unlockPrice={p.unlock_price}
                                 piano={p.piano}

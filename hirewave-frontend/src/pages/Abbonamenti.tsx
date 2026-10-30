@@ -3,11 +3,14 @@ import { Link } from "react-router-dom";
 import { CheckIcon } from "@heroicons/react/24/solid";
 import axiosClient from "../api/axiosClient";
 import { useAuth } from "../context/AuthContext";
-import { PIANI } from "../utils/labels";
+import { PIANI, PREMIUM_ANNUALE_PRICE } from "../utils/labels";
 import type { Piano } from "../utils/labels";
 import { confermaRitornoStripe, messaggioErrore } from "../utils/sblocco";
 
 type Stato = { piano: Piano | null; scade_at: string | null };
+
+// Cosa si acquista: un piano mensile o il Premium annuale (Abbonamento::PIANI)
+type Prodotto = Piano | "premium_annuale";
 
 // Listino del business plan, par. 8.1
 const SCHEDE: { id: Piano | null; nome: string; prezzo: string; sotto: string; punti: string[]; evidenza?: boolean }[] = [
@@ -16,14 +19,14 @@ const SCHEDE: { id: Piano | null; nome: string; prezzo: string; sotto: string; p
         nome: "Free",
         prezzo: "0",
         sotto: "per sempre",
-        punti: ["Profilo e rating tecnico", "Verifica documenti e badge verde", "Tutor: 15 domande al giorno", "Candidature e chat"],
+        punti: ["Profilo e rating tecnico", "Verifica documenti e badge verde", "Tutor: 15 domande al giorno", "10 candidature al mese"],
     },
     {
         id: "premium",
         nome: "Premium",
         prezzo: PIANI.premium.prezzo,
         sotto: "al mese",
-        punti: ["Profilo in evidenza nei Talenti", "Priorità nei risultati di ricerca", "Analisi della retribuzione rispetto al mercato", "Tutor illimitato"],
+        punti: ["Profilo in evidenza nei Talenti", "Priorità nei risultati di ricerca", "Analisi della retribuzione rispetto al mercato", "Tutor e candidature illimitati"],
         evidenza: true,
     },
     {
@@ -38,7 +41,7 @@ const SCHEDE: { id: Piano | null; nome: string; prezzo: string; sotto: string; p
 export default function AbbonamentiPage() {
     const { user, fetchUser } = useAuth();
     const [stato, setStato] = useState<Stato | null>(null);
-    const [inCorso, setInCorso] = useState<Piano | "disdici" | null>(null);
+    const [inCorso, setInCorso] = useState<Prodotto | "disdici" | null>(null);
     const [notice, setNotice] = useState("");
 
     useEffect(() => {
@@ -66,13 +69,15 @@ export default function AbbonamentiPage() {
         );
     }
 
-    const attiva = async (piano: Piano) => {
+    const attiva = async (piano: Prodotto) => {
         setInCorso(piano);
         try {
             const res = await axiosClient.post("/api/abbonamento", { piano });
             if (res.data.demo) {
                 setStato(res.data.abbonamento);
-                setNotice(`Piano ${PIANI[piano].nome} attivo (pagamento demo) per 30 giorni.`);
+                setNotice(piano === "premium_annuale"
+                    ? "Piano Premium annuale attivo (pagamento demo) per 12 mesi."
+                    : `Piano ${PIANI[piano].nome} attivo (pagamento demo) per 30 giorni.`);
                 fetchUser();
             } else if (res.data.url) {
                 window.location.href = res.data.url;
@@ -164,16 +169,27 @@ export default function AbbonamentiPage() {
                                     >
                                         {inCorso === s.id ? "Attivazione…" : attuale ? `Passa a ${s.nome}` : `Attiva ${s.nome}`}
                                     </button>
-                                ) : (
-                                    attuale && (
-                                        <button
-                                            onClick={disdici}
-                                            disabled={inCorso !== null}
-                                            className="w-full py-2.5 text-sm font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-                                        >
-                                            {inCorso === "disdici" ? "…" : "Torna a Free"}
-                                        </button>
-                                    )
+                                ) : null}
+                                {/* Premium annuale: 12 mesi al prezzo di 10 */}
+                                {s.id === "premium" && (
+                                    <button
+                                        onClick={() => attiva("premium_annuale")}
+                                        disabled={inCorso !== null || !stato}
+                                        className="mt-2 w-full py-2 text-xs font-semibold rounded-xl border border-violet-200 text-violet-700 bg-white hover:bg-violet-50 disabled:opacity-50"
+                                    >
+                                        {inCorso === "premium_annuale"
+                                            ? "Attivazione…"
+                                            : `${corrente ? "Rinnova" : "Oppure"} €${PREMIUM_ANNUALE_PRICE}/anno · 2 mesi gratis`}
+                                    </button>
+                                )}
+                                {!corrente && !s.id && attuale && (
+                                    <button
+                                        onClick={disdici}
+                                        disabled={inCorso !== null}
+                                        className="w-full py-2.5 text-sm font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                                    >
+                                        {inCorso === "disdici" ? "…" : "Torna a Free"}
+                                    </button>
                                 )}
                             </div>
                         </div>
@@ -182,7 +198,7 @@ export default function AbbonamentiPage() {
             </div>
 
             <p className="text-xs text-slate-400 text-center">
-                Ogni piano dura 30 giorni e si può disdire quando vuoi.
+                Premium e Boost durano 30 giorni, il Premium annuale 12 mesi. Si possono disdire quando vuoi.
             </p>
         </div>
     );

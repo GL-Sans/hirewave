@@ -129,8 +129,8 @@ class Tutor
 
     private static function retribuzione(User $user): array
     {
-        $attesa = self::importoMensile($user->ral_aspettativa);
-        $mercato = self::mercato($user->settore);
+        $attesa = Mercato::importoMensile($user->ral_aspettativa);
+        $mercato = Mercato::statistiche($user->settore);
 
         if (!$mercato) {
             return self::esito(
@@ -150,8 +150,8 @@ class Tutor
         if ($attesa) {
             $diff = (int) round(($attesa - $mercato['media']) / $mercato['media'] * 100);
             $righe[] = "La tua aspettativa (circa €" . self::euro($attesa) . '/mese) è ' . match (true) {
-                $diff > 10 => "sopra la media del $diff%.",
-                $diff < -10 => 'sotto la media del ' . abs($diff) . '%: puoi chiedere di più.',
+                $diff > Mercato::TOLLERANZA => "sopra la media del $diff%.",
+                $diff < -Mercato::TOLLERANZA => 'sotto la media del ' . abs($diff) . '%: puoi chiedere di più.',
                 default => 'in linea con il mercato.',
             };
         }
@@ -186,8 +186,8 @@ class Tutor
     {
         $attivo = Abbonamento::attivo($user);
         $testo = "Piani per lavoratori e professionisti:\n"
-            . "• Free: profilo, rating, verifica documenti, " . Abbonamento::TUTOR_FREE_AL_GIORNO . " domande al tutor al giorno\n"
-            . "• Premium €14,99/mese: profilo in evidenza, priorità nei risultati, analisi della retribuzione, tutor illimitato\n"
+            . "• Free: profilo, rating, verifica documenti, " . Abbonamento::TUTOR_FREE_AL_GIORNO . " domande al tutor al giorno, " . Abbonamento::CANDIDATURE_FREE_AL_MESE . " candidature al mese\n"
+            . "• Premium €14,99/mese o €149,99/anno: profilo in evidenza, priorità nei risultati, analisi della retribuzione, tutor e candidature illimitati\n"
             . "• Boost €29,99/mese: tutto il Premium + primo posto nei risultati, badge Sponsor e post in evidenza nel feed";
         if ($attivo) {
             $testo .= "\n\nIl tuo piano attuale: " . Abbonamento::PIANI[$attivo]['nome'] . '.';
@@ -199,8 +199,8 @@ class Tutor
     private static function privacyTalento(): array
     {
         return self::esito(
-            "Il tuo nome, la foto e i contatti sono nascosti. Prima dello sblocco aziende e professionisti vedono solo rating, badge, settore, titolo di studio e retribuzione attesa.\n"
-            . "Quando qualcuno paga lo sblocco ricevi una notifica: da quel momento può vederti e scriverti per 30 giorni.",
+            "Il tuo nome, la foto e i contatti sono nascosti. Prima dello sblocco aziende e professionisti vedono solo rating, badge, settore, titolo di studio, disponibilità e retribuzione attesa, e possono mandarti solo messaggi preimpostati.\n"
+            . "Quando qualcuno paga lo sblocco ricevi una notifica: per 30 giorni vede contatti e curriculum completo (anche se l'hai reso privato) e la chat diventa libera.",
             [], ['Come aumento il rating?'],
         );
     }
@@ -386,43 +386,6 @@ class Tutor
             array_push($chiavi, ...$m[1]);
         }
         return array_values(array_unique($chiavi));
-    }
-
-    /** Media mensile degli annunci con paga mensile, nel settore se ce ne sono abbastanza */
-    private static function mercato(?string $settore): ?array
-    {
-        $posts = Post::with('user')->where('type', 'job')->where('budget_type', 'Mensile')->whereNotNull('budget')->get()
-            ->filter(fn ($p) => $p->user && $p->user->role === 'COMPANY');
-        $nelSettore = $posts->filter(fn ($p) => $p->user->settore === $settore);
-        $usati = $nelSettore->count() >= 2 ? $nelSettore : $posts;
-
-        if ($usati->isEmpty()) {
-            return null;
-        }
-        $importi = $usati->pluck('budget')->map(fn ($b) => (float) $b);
-
-        return [
-            'settore' => $usati === $nelSettore ? $settore : 'generale',
-            'n' => $importi->count(),
-            'media' => $importi->avg(),
-            'min' => $importi->min(),
-            'max' => $importi->max(),
-        ];
-    }
-
-    /** "€1.000 – €1.500/mese" → 1250. Null per tariffe giornaliere o freelance */
-    private static function importoMensile(?string $ral): ?float
-    {
-        if (!$ral || !str_contains($ral, 'mese')) {
-            return null;
-        }
-        preg_match_all('/\d[\d.]*/', $ral, $m);
-        $numeri = array_map(fn ($n) => (float) str_replace('.', '', $n), $m[0]);
-        if (!$numeri) {
-            return null;
-        }
-        // "Meno di €1.000" → 900
-        return str_contains(Str::lower($ral), 'meno') ? $numeri[0] * 0.9 : array_sum($numeri) / count($numeri);
     }
 
     private static function stato(string $stato): string

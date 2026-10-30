@@ -96,9 +96,13 @@ class SbloccoRecensioniAbbonamentiTest extends TestCase
 
         $this->come($azienda, 'GET', "/api/messages/{$worker->id}")
             ->assertJsonPath('can_send', false)
+            ->assertJsonPath('preset.0.id', 'interesse')
             ->assertJsonPath('sblocco.prezzo', 2999)
             ->assertJsonPath('sblocco.rating_tecnico', 40);
+        // Prima dello sblocco: niente testo libero, solo messaggi preimpostati
         $this->come($azienda, 'POST', "/api/messages/{$worker->id}", ['body' => 'Ciao'])->assertStatus(403);
+        $this->come($azienda, 'POST', "/api/messages/{$worker->id}", ['preset' => 'interesse'])
+            ->assertCreated()->assertJsonPath('body', 'Il tuo profilo è interessante: sei disponibile per un colloquio?');
 
         $this->come($azienda, 'POST', '/api/stripe/checkout', ['worker_id' => $worker->id, 'ritorno' => 'chat'])
             ->assertOk()->assertJsonPath('url', fn ($u) => str_ends_with($u, "/chat?to={$worker->id}"));

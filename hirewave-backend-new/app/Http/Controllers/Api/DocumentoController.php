@@ -9,6 +9,7 @@ use App\Support\RatingTecnico;
 use App\Support\VerificaDocumenti;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -44,6 +45,8 @@ class DocumentoController extends Controller
             'file' => 'required|file|mimes:pdf,jpg,jpeg,png,webp|max:10240',
             // L'utente conferma che il dato resterà bloccato fino all'esito
             'conferma' => 'accepted',
+            // GDPR: consenso esplicito al trattamento del documento, per ogni upload
+            'consenso' => 'accepted',
         ]);
 
         if (DocumentoVerifica::where('user_id', $user->id)->count() >= self::MAX_DOCUMENTI) {
@@ -77,15 +80,21 @@ class DocumentoController extends Controller
         }
 
         $file = $request->file('file');
-        $doc = new DocumentoVerifica($data);
+        // Disco privato e contenuto cifrato con la chiave dell'app (APP_KEY):
+        // chi copia la cartella dei file non legge i documenti
+        $path = 'documenti/' . $user->id . '/' . $file->hashName() . '.enc';
+        Storage::disk('local')->put($path, Crypt::encryptString($file->get()));
+
+        $doc = new DocumentoVerifica(collect($data)->except(['conferma', 'consenso'])->all());
         $doc->forceFill([
             'user_id' => $user->id,
-            // Disco privato: i documenti non hanno un indirizzo pubblico
-            'file_path' => $file->store('documenti/' . $user->id, 'local'),
+            'file_path' => $path,
             'nome_file' => mb_substr($file->getClientOriginalName(), 0, 255),
             'mime' => $file->getMimeType(),
             'dimensione' => $file->getSize(),
             'hash' => hash_file('sha256', $file->getRealPath()),
+            'consenso_at' => now(),
+            'cifrato' => true,
             'stato' => 'in_verifica',
         ])->save();
 
@@ -131,7 +140,15 @@ class DocumentoController extends Controller
             abort(404);
         }
 
-        return Storage::disk('local')->download($documento->file_path, $documento->nome_file);
+        if (!$documento->cifrato) {
+            return Storage::disk('local')->download($documento->file_path, $documento->nome_file);
+        }
+
+        $contenuto = Crypt::decryptString(Storage::disk('local')->get($documento->file_path));
+
+        return response()->streamDownload(fn () => print($contenuto), $documento->nome_file, [
+            'Content-Type' => $documento->mime ?: 'application/octet-stream',
+        ]);
     }
 
     public static function puoVedereFile(User $viewer, DocumentoVerifica $doc): bool

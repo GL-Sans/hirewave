@@ -2,8 +2,8 @@ import { useParams, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import axiosClient from "../api/axiosClient";
-import { profileIdFromParam } from "../utils/profilePath";
-import { ISTRUZIONE_OPTIONS } from "../utils/labels";
+import { profileIdFromParam, profilePath } from "../utils/profilePath";
+import { disponibilitaLabel, ISTRUZIONE_OPTIONS, istruzioneLabel, RETRIBUZIONI } from "../utils/labels";
 
 // Riga "etichetta: valore" che va a capo su schermi stretti (email e link lunghi inclusi)
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -37,6 +37,12 @@ export default function CurriculumPage() {
         languages: "",
         livello_istruzione: "",
         certificazioni: "",
+        istituto: "",
+        anno_titolo: "",
+        disponibilita_da: "",
+        disponibilita_a: "",
+        zona: "",
+        ral_aspettativa: "",
     });
     const [error, setError] = useState("");
 
@@ -70,6 +76,12 @@ export default function CurriculumPage() {
                         languages: u.languages ? u.languages.join(", ") : "",
                         livello_istruzione: u.livello_istruzione ?? "",
                         certificazioni: u.certificazioni ?? "",
+                        istituto: u.istituto ?? "",
+                        anno_titolo: u.anno_titolo ? String(u.anno_titolo) : "",
+                        disponibilita_da: u.disponibilita_da ? String(u.disponibilita_da).slice(0, 10) : "",
+                        disponibilita_a: u.disponibilita_a ? String(u.disponibilita_a).slice(0, 10) : "",
+                        zona: u.zona ?? "",
+                        ral_aspettativa: u.ral_aspettativa ?? "",
                     });
                 }
             } catch (err) {
@@ -89,15 +101,24 @@ export default function CurriculumPage() {
                 ? `https://${form.website}`
                 : form.website;
 
-            const { livello_istruzione, certificazioni, ...rest } = form;
+            const { livello_istruzione, certificazioni, istituto, anno_titolo, disponibilita_da, disponibilita_a, zona, ral_aspettativa, ...rest } = form;
             await axiosClient.put("/api/me/curriculum", {
                 ...rest,
                 website,
+                ral_aspettativa: ral_aspettativa || undefined,
                 years_experience: form.years_experience ? parseInt(form.years_experience as string) : null,
                 skills: form.skills ? form.skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
                 languages: form.languages ? form.languages.split(",").map((l) => l.trim()).filter(Boolean) : [],
-                // Dati del rating: solo lavoratori e professionisti
-                ...(isTalent ? { livello_istruzione: livello_istruzione || undefined, certificazioni } : {}),
+                // Dati del rating, del titolo e della disponibilità: solo lavoratori e professionisti
+                ...(isTalent ? {
+                    livello_istruzione: livello_istruzione || undefined,
+                    certificazioni,
+                    istituto: istituto || null,
+                    anno_titolo: anno_titolo ? parseInt(anno_titolo) : null,
+                    disponibilita_da: disponibilita_da || null,
+                    disponibilita_a: disponibilita_a || null,
+                    zona: zona || null,
+                } : {}),
             });
             setShowForm(false);
             const res = await axiosClient.get("/api/me");
@@ -114,8 +135,12 @@ export default function CurriculumPage() {
     if (loading) return <p className="text-black p-4">Caricamento...</p>;
     if (!profileUser) return <p className="text-black p-4">Profilo non trovato</p>;
 
-    // Curriculum privato visto da altri
-    if (!isMyProfile && !profileUser.curriculum_public) {
+    const disponibilita = disponibilitaLabel(profileUser);
+    // Stessa regola della chat (App\Support\Chat): niente chat tra utenti dello stesso ruolo
+    const canContact = !isMyProfile && profileUser.role !== loggedUser?.role;
+
+    // Curriculum privato visto da chi non l'ha sbloccato
+    if (!isMyProfile && !profileUser.curriculum_public && !profileUser.curriculum_completo) {
         return (
             <div className="space-y-4">
                 <div className="bg-white text-gray-700 rounded-2xl p-4 shadow-sm">
@@ -123,10 +148,19 @@ export default function CurriculumPage() {
                 </div>
                 <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3 text-gray-700">
                     <InfoRow label="Nome">{profileUser.first_name} {profileUser.last_name}</InfoRow>
+                    {disponibilita && <InfoRow label="Disponibilità">{disponibilita}{profileUser.zona ? ` · ${profileUser.zona}` : ""}</InfoRow>}
                     <p className="text-sm text-slate-400">Questo utente ha scelto di mantenere il curriculum privato.</p>
-                    <Link to={`/chat?to=${profileUser.id}`}className="text-sm text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 inline-block">
-                        Contatta
-                    </Link>
+                    {profileUser.curriculum_sbloccabile && (
+                        <p className="text-sm text-slate-600 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">
+                            🔒 Sbloccando il profilo vedi comunque il curriculum completo, i contatti e il CV.{" "}
+                            <Link to={profilePath(profileUser)} className="text-blue-600 font-medium hover:underline">Vai allo sblocco</Link>
+                        </p>
+                    )}
+                    {canContact && (
+                        <Link to={`/chat?to=${profileUser.id}`}className="text-sm text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 inline-block">
+                            Contatta
+                        </Link>
+                    )}
                 </div>
             </div>
         );
@@ -200,6 +234,31 @@ export default function CurriculumPage() {
                                     ))}
                                 </select>
                             </div>
+                            <div className="grid grid-cols-[1fr_7rem] gap-2">
+                                <div className="min-w-0">
+                                    <label className="text-sm text-slate-500 block mb-1">Istituto 🔓</label>
+                                    <input
+                                        type="text"
+                                        maxLength={150}
+                                        placeholder="Es. IPSSAR De Cecco, Pescara"
+                                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                                        value={form.istituto}
+                                        onChange={(e) => setForm({ ...form, istituto: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm text-slate-500 block mb-1">Anno</label>
+                                    <input
+                                        type="number"
+                                        min={1940}
+                                        max={new Date().getFullYear() + 1}
+                                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                                        value={form.anno_titolo}
+                                        onChange={(e) => setForm({ ...form, anno_titolo: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <p className="text-[11px] text-slate-400 -mt-1">🔓 Istituto e anno li vede solo chi sblocca il tuo profilo.</p>
                             <div>
                                 <label className="text-sm text-slate-500 block mb-1">Certificazioni (separate da virgola)</label>
                                 <input
@@ -213,6 +272,59 @@ export default function CurriculumPage() {
                             </div>
                         </div>
                     )}
+
+                    {isTalent && (
+                        <div className="border border-slate-200 rounded-xl p-3 space-y-3">
+                            <p className="text-xs text-slate-500">
+                                Disponibilità: la vedono tutte le aziende, anche prima dello sblocco.
+                            </p>
+                            <div className="grid grid-cols-2 gap-2">
+                                {[
+                                    { label: "Disponibile dal", key: "disponibilita_da" },
+                                    { label: "Fino al (facoltativo)", key: "disponibilita_a" },
+                                ].map(({ label, key }) => (
+                                    <div key={key} className="min-w-0">
+                                        <label className="text-sm text-slate-500 block mb-1">{label}</label>
+                                        <input
+                                            type="date"
+                                            className="w-full max-w-full min-w-0 appearance-none border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+                                            value={(form as any)[key]}
+                                            onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                            <div>
+                                <label className="text-sm text-slate-500 block mb-1">Zona</label>
+                                <input
+                                    type="text"
+                                    maxLength={120}
+                                    placeholder="Es. Pescara e costa teatina"
+                                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                                    value={form.zona}
+                                    onChange={(e) => setForm({ ...form, zona: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    <div>
+                        <label className="text-sm text-slate-500 block mb-1">
+                            {isTalent ? "Retribuzione attesa (visibile a tutti, confrontata col mercato)" : "Retribuzione media che offri"}
+                        </label>
+                        <select
+                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+                            value={form.ral_aspettativa}
+                            onChange={(e) => setForm({ ...form, ral_aspettativa: e.target.value })}
+                        >
+                            <option value="" disabled>Seleziona…</option>
+                            {/* Un valore fuori elenco (vecchi profili) resta selezionabile */}
+                            {form.ral_aspettativa && !RETRIBUZIONI.includes(form.ral_aspettativa) && (
+                                <option value={form.ral_aspettativa}>{form.ral_aspettativa}</option>
+                            )}
+                            {RETRIBUZIONI.map((r) => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                    </div>
 
                     <div>
                         <label className="text-sm text-slate-500 block mb-1">Telefono (visibile alle aziende che sbloccano il tuo profilo)</label>
@@ -256,8 +368,15 @@ export default function CurriculumPage() {
                             checked={form.curriculum_public}
                             onChange={(e) => setForm({ ...form, curriculum_public: e.target.checked })}
                         />
-                        Rendi il curriculum pubblico (mostra anche la tua email)
+                        Rendi il curriculum pubblico (bio, esperienza, competenze e lingue visibili a tutti)
                     </label>
+                    {isTalent && (
+                        <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 -mt-1">
+                            {form.curriculum_public ? "Pubblico" : "Privato"}: in ogni caso nome, email e telefono restano nascosti.
+                            Le aziende e i professionisti che <strong>sbloccano il tuo profilo pagando</strong> vedono il curriculum completo,
+                            i contatti e il CV anche se lo tieni privato.
+                        </p>
+                    )}
 
                     {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -274,9 +393,21 @@ export default function CurriculumPage() {
             {/* Dati pubblici */}
             <div className="bg-white rounded-2xl p-4 shadow-sm space-y-2 text-gray-700">
                 <InfoRow label="Nome">{profileUser.first_name} {profileUser.last_name}</InfoRow>
-                {profileUser.email && profileUser.curriculum_public && (
+                {/* Email: per gli altri arriva dal server solo dopo lo sblocco */}
+                {profileUser.email && (isMyProfile || profileUser.curriculum_completo) && (
                     <InfoRow label="Email">
                         <a href={`mailto:${profileUser.email}`} className="text-blue-600">{profileUser.email}</a>
+                    </InfoRow>
+                )}
+                {!isMyProfile && profileUser.phone && (
+                    <InfoRow label="Telefono">
+                        <a href={`tel:${profileUser.phone}`} className="text-blue-600">{profileUser.phone}</a>
+                    </InfoRow>
+                )}
+                {profileUser.livello_istruzione && (
+                    <InfoRow label="Titolo di studio">
+                        {istruzioneLabel(profileUser.livello_istruzione)}
+                        {(profileUser.istituto || profileUser.anno_titolo) ? ` · ${[profileUser.istituto, profileUser.anno_titolo].filter(Boolean).join(", ")}` : ""}
                     </InfoRow>
                 )}
                 {profileUser.bio && <InfoRow label="Bio">{profileUser.bio}</InfoRow>}
@@ -308,7 +439,10 @@ export default function CurriculumPage() {
                         ))}
                     </div>
                 )}
-                <InfoRow label="Disponibile">{profileUser.available ? "Sì" : "No"}</InfoRow>
+                <InfoRow label="Disponibilità">
+                    {disponibilita || (profileUser.available ? "Sì" : "No")}
+                    {profileUser.zona ? ` · ${profileUser.zona}` : ""}
+                </InfoRow>
             </div>
 
             {/* Dati privati (solo mio profilo) */}
@@ -329,8 +463,8 @@ export default function CurriculumPage() {
                 </div>
             )}
 
-            {/* Bottone contatta (profilo altrui) */}
-            {!isMyProfile && (
+            {/* Bottone contatta (profilo altrui, niente chat tra pari) */}
+            {canContact && (
                 <div className="bg-white rounded-2xl p-4 shadow-sm">
                     <Link to={`/chat?to=${profileUser.id}`}className="text-sm text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 inline-block">
                         Contatta

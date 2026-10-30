@@ -55,6 +55,11 @@ class User extends Authenticatable
         'anni_esperienza',
         'certificazioni',
         'notifications_enabled',
+        'disponibilita_da',
+        'disponibilita_a',
+        'zona',
+        'istituto',
+        'anno_titolo',
     ];
 
     /**
@@ -92,6 +97,10 @@ class User extends Authenticatable
             'rating_tecnico' => 'integer',
             'anni_esperienza' => 'integer',
             'abbonamento_scade_at' => 'datetime',
+            'disponibilita_da' => 'date:Y-m-d',
+            'disponibilita_a' => 'date:Y-m-d',
+            'anno_titolo' => 'integer',
+            'sblocchi_gratuiti_usati' => 'integer',
         ];
     }
 }
